@@ -46,3 +46,37 @@ export const getAllCases = async (req, res) => {
         });
     }
 }
+
+// NGO Accepts a case
+export const acceptCase = async (req, res) => {
+    try{
+        const { ngoID } = req.body;
+
+        const updatedCase = await Case.findByIdAndUpdate(
+            req.params.id,
+            { 
+                status: 'ACCEPTED',
+                assignedNGO: ngoID
+            },
+            { new: true }
+        );
+
+        if(!updatedCase){
+            return res.status(404).json({
+                success: false,
+                message: 'Case not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: updatedCase
+        });
+    } catch (error){
+        console.error(`Error accepting case: ${error.message}`);
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
+    }
+}
