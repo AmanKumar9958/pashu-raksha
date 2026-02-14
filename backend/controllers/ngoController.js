@@ -11,8 +11,8 @@ export const getNearByNGOs = async (req, res) => {
                     $geometry: {
                         type: 'Point',
                         coordinates: [parseFloat(lng), parseFloat(lat)],
-                        $maxDistance: distance * 1000   // convert KM to meters
-                    }
+                    },
+                    $maxDistance: distance * 1000   // convert KM to meters
                 }
             }
         });
