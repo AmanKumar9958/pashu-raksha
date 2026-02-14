@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 
 import connectDB from './config/db.js';
 
+import caseRoutes from './routes/caseRoutes.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -24,6 +26,8 @@ app.use(cors());
 app.get('/', (req, res) => {
     res.send("Pashu Raksha API is running...");
 })
+
+app.use('/api/cases', caseRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -29,11 +29,11 @@ const caseSchema = mongoose.Schema({
     location: {
         type: {
             type: String,
-            default: 'Point',
-            coordinates: {
-                type: [Number],
-                required: true
-            }
+            default: 'Point'
+        },
+        coordinates: {
+            type: [Number],
+            required: true
         }
     },
     assignedNGO: {
