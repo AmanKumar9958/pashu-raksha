@@ -80,3 +80,24 @@ export const acceptCase = async (req, res) => {
         });
     }
 }
+
+// NGO Marks case as resolved
+export const resolveCase = async (req, res) => {
+    try{
+        const updatedCase = await Case.findByIdAndUpdate(
+            req.params.id,
+            { status: 'RESOLVED' },
+            { new: true }
+        )
+        res.status(200).json({
+            success: true,
+            data: updatedCase
+        });
+    } catch (error){
+        console.error(`Error resolving case: ${error.message}`);
+        res.status(500).json({
+            success: false,
+            message: 'Server Error'
+        });
+    }
+}
