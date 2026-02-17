@@ -1,20 +1,24 @@
 import User from "../models/User.js";
 
 // for creating new user/NGO
-export const createUser = async (req, res) => {
+export const syncUser = async (req, res) => {
     try{
-        const { name, email, role, location, phone, ngoDetails } = req.body;
+        const { clerkId, email, name, role, phone, location, ngoDetails } = req.body;
 
-        const user = await User.create({
-            name,
-            email,
-            role,
-            location,
-            phone,
-            ngoDetails
-        });
+        const user = await User.findOneAndUpdate(
+            { clerkId: clerkId }, // Unique ID from Clerk
+            { 
+                email, 
+                name, 
+                role, 
+                phone, 
+                location, 
+                ngoDetails 
+            },
+            { new: true, upsert: true, runValidators: true }
+        );
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             data: user
         });

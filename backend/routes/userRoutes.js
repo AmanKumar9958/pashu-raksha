@@ -1,9 +1,10 @@
 import express from 'express';
 
-import { createUser } from '../controllers/userController.js';
+import { syncUser } from '../controllers/userController.js';
+import { protect, requireAuth } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.post('/register', createUser);
+router.post('/sync', protect, requireAuth, syncUser);
 
 export default router;
