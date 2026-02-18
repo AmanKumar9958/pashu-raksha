@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
@@ -8,13 +8,49 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 
 export default function DetailsScreen() {
     const router = useRouter();
-    const { getToken } = useAuth();
-    const { user } = useUser();
+    const { getToken, isLoaded: authLoaded, isSignedIn } = useAuth();
+    const { user, isLoaded: userLoaded } = useUser();
 
     const [role, setRole] = useState('citizen');
     const [phone, setPhone] = useState('');
     const [address, setAddress] = useState('');
     const [loading, setLoading] = useState(false); // Loading state added
+    const [checkingProfile, setCheckingProfile] = useState(true);
+
+    useEffect(() => {
+        const checkExistingProfile = async () => {
+            if (!authLoaded || !userLoaded) return;
+
+            // If not signed in, go back to login
+            if (!isSignedIn || !user?.id) {
+                setCheckingProfile(false);
+                router.replace('/');
+                return;
+            }
+
+            try {
+                const token = await getToken();
+                const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (response.data?.data?.phone) {
+                    router.replace('/(tabs)');
+                    return;
+                }
+            } catch (error: any) {
+                // 404 means user not yet synced -> stay on details
+                const status = error?.response?.status;
+                if (status !== 404) {
+                    console.log('Profile check error:', error?.response?.data || error?.message);
+                }
+            } finally {
+                setCheckingProfile(false);
+            }
+        };
+
+        checkExistingProfile();
+    }, [authLoaded, getToken, isSignedIn, router, user?.id, userLoaded]);
 
     const handleSubmit = async () => {
         // Validation: Sirf Phone aur (NGO ke liye Address) check karo agar user already logged in hai
@@ -74,6 +110,11 @@ export default function DetailsScreen() {
     };
 
     return (
+        checkingProfile ? (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color="#00F0D1" />
+            </View>
+        ) : (
         <ScrollView contentContainerStyle={styles.container}>
             <Text style={styles.header}>Final Steps 🐾</Text>
             <Text style={styles.subHeader}>Confirm your role and phone to continue.</Text>
@@ -124,6 +165,7 @@ export default function DetailsScreen() {
                 {loading ? <ActivityIndicator color="#000" /> : <Text style={styles.submitBtnText}>Confirm & Finish</Text>}
             </TouchableOpacity>
         </ScrollView>
+        )
     );
 }
 

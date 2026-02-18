@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import * as WebBrowser from "expo-web-browser";
-import { useSignIn, useOAuth } from "@clerk/clerk-expo";
+import { useAuth, useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as Linking from "expo-linking";
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
@@ -17,6 +17,10 @@ WebBrowser.maybeCompleteAuthSession();
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn, setActive, isLoaded } = useSignIn();
+  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded: userLoaded, user } = useUser();
+  const routedForUserIdRef = useRef<string | null>(null);
+  const [routing, setRouting] = useState(false);
   
   // State management
   const [role, setRole] = useState('Volunteer'); 
@@ -27,23 +31,81 @@ export default function LoginScreen() {
   // Google OAuth Logic
   const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
 
+  const routeAfterLogin = useCallback(async () => {
+    if (!authLoaded || !userLoaded || !isSignedIn || !user?.id) return;
+
+    // Only route once per signed-in user id
+    if (routedForUserIdRef.current === user.id) return;
+    routedForUserIdRef.current = user.id;
+
+    setRouting(true);
+    try {
+      const token = await getToken();
+      const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (response.data?.data?.phone) {
+        router.replace('/(tabs)');
+      } else {
+        router.replace('/details');
+      }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      // If user is not in DB yet, send to onboarding details
+      if (status === 404) {
+        router.replace('/details');
+      } else {
+        console.error('Post-login profile check error:', err);
+        router.replace('/details');
+      }
+    } finally {
+      setRouting(false);
+    }
+  }, [authLoaded, getToken, isSignedIn, router, user?.id, userLoaded]);
+
+  useEffect(() => {
+    routeAfterLogin();
+  }, [routeAfterLogin]);
+
   const onGoogleLoginPress = useCallback(async () => {
     try {
+      // Avoid starting a new OAuth flow if a session already exists.
+      if (authLoaded && isSignedIn) {
+        routeAfterLogin();
+        return;
+      }
+
       const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
         // Yeh URL app.json ki scheme se match hona chahiye
-        redirectUrl: Linking.createURL("/details", { scheme: "pashu-raksha" }),
+        redirectUrl: Linking.createURL("/", { scheme: "pashu-raksha" }),
       });
 
       if (createdSessionId) {
         setOAuthActive!({ session: createdSessionId });
-        // Google se login ke baad onboarding (details) par bhejo
-        router.replace("/details");
+        // After session is active, route based on existing profile
+        routeAfterLogin();
       }
     } catch (err) {
       console.error("OAuth error", err);
+      const message = (err as any)?.errors?.[0]?.message || (err as any)?.message || '';
+      if (typeof message === 'string' && message.toLowerCase().includes('already signed in')) {
+        routeAfterLogin();
+        return;
+      }
       Alert.alert("Error", "Google Login failed. Please try again.");
     }
-  }, [startOAuthFlow]);
+  }, [authLoaded, isSignedIn, routeAfterLogin, startOAuthFlow]);
+
+  // If auth state isn't ready yet, avoid rendering the login UI to prevent a flash.
+  if (!authLoaded) {
+    return null;
+  }
+
+  // While signed in, we immediately route based on profile
+  if (isSignedIn || routing) {
+    return null;
+  }
 
   // Email/Password Login Logic
   const onSignInPress = async () => {
@@ -51,24 +113,11 @@ export default function LoginScreen() {
     try {
       const completeSignIn = await signIn.create({ identifier: email, password });
       await setActive({ session: completeSignIn.createdSessionId });
-      checkUserStatus(email);
+      routeAfterLogin();
     } catch (err: any) {
       Alert.alert("Login Failed", err.errors[0]?.message || "Check your credentials");
     }
   };
-
-  const checkUserStatus = async (userEmail: string) => {
-    try {
-      const response = await axios.post(`${API_URL}/users/sync`, { email: userEmail });
-      if (response.data.data?.phone) {
-        router.replace("/(tabs)");
-      } else {
-        router.replace("/details");
-      }
-    } catch (err) {
-      router.replace("/details");
-    }
-  }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
@@ -91,6 +140,17 @@ export default function LoginScreen() {
             ))}
           </View>
 
+          {/* Working Google Button */}
+          <TouchableOpacity style={styles.googleButton} onPress={onGoogleLoginPress}>
+            <Image 
+              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
+              style={{ width: 20, height: 20, marginRight: 10, resizeMode: 'contain' }} 
+            />
+            <Text style={styles.googleButtonText}>Google Login</Text>
+          </TouchableOpacity>
+          
+          <View style={styles.dividerContainer}><View style={styles.line} /><Text style={styles.orText}>Or continue with</Text><View style={styles.line} /></View>
+
           <View style={styles.inputWrapper}>
             <Text style={styles.label}>Email Address</Text>
             <View style={styles.inputContainer}>
@@ -112,17 +172,6 @@ export default function LoginScreen() {
 
           <TouchableOpacity style={styles.signInButton} onPress={onSignInPress}>
             <Text style={styles.signInButtonText}>Sign In  →</Text>
-          </TouchableOpacity>
-
-          <View style={styles.dividerContainer}><View style={styles.line} /><Text style={styles.orText}>Or continue with</Text><View style={styles.line} /></View>
-
-          {/* Working Google Button */}
-          <TouchableOpacity style={styles.googleButton} onPress={onGoogleLoginPress}>
-            <Image 
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
-              style={{ width: 20, height: 20, marginRight: 10, resizeMode: 'contain' }} 
-            />
-            <Text style={styles.googleButtonText}>Google Login</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

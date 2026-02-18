@@ -1,9 +1,10 @@
 // Main entry file
+import 'dotenv/config'; // Ensure .env is loaded before other imports
 
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import dotenv from 'dotenv';
+// import dotenv from 'dotenv'; // Removed because we use 'dotenv/config'
 
 // Database connection
 import connectDB from './config/db.js';
@@ -13,17 +14,14 @@ import caseRoutes from './routes/caseRoutes.js';
 import ngoRoutes from './routes/ngoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
-// Load environment variables
-dotenv.config();
-
 // Connect to MongoDB
 connectDB();
 
 const app = express();
 
 // body parser middleware
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
 
 // Basic testing route

@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
-import { ClerkProvider, SignedIn, SignedOut } from "@clerk/clerk-expo";
+import { ClerkProvider } from "@clerk/clerk-expo";
 
 
 // token cache logic
