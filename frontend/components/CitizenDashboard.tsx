@@ -13,7 +13,7 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
   const fetchedReportsForUserIdRef = useRef<string | null>(null);
 
   const [myReports, setMyReports] = useState<any[]>([]);
-  const [loadingReports, setLoadingReports] = useState(true);
+  const [loadingReports, setLoadingReports] = useState(false);
 
   const [successStories, setSuccessStories] = useState<any[]>([]);
   const [savedThisMonth, setSavedThisMonth] = useState(0);
@@ -21,6 +21,18 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
 
   const isCanceledError = (error: any) => {
     return error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError';
+  };
+
+  const withTimeout = async <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
+    let timeoutId: any;
+    try {
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), ms);
+      });
+      return await Promise.race([promise, timeout]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   };
 
   const getStatusStyle = (status: string) => {
@@ -39,7 +51,6 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
   useEffect(() => {
     if (!isUserLoaded || !isAuthLoaded) return;
 
-    // If signed out (or user missing), clear loading + data
     if (!isSignedIn || !user?.id) {
       fetchedReportsForUserIdRef.current = null;
       setMyReports([]);
@@ -47,50 +58,52 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
       return;
     }
 
-    // Fetch only once per user id (prevents repeated loading loops)
     if (fetchedReportsForUserIdRef.current === user.id) return;
-    fetchedReportsForUserIdRef.current = user.id;
-
+    
     let isMounted = true;
     const controller = new AbortController();
 
     const fetchMyReports = async () => {
       setLoadingReports(true);
       try {
+        // Token lein
         const token = await getToken();
+        
+        // API Call
         const response = await axios.get(`${API_URL}/cases/user/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 10000,
           signal: controller.signal,
+          timeout: 8000, // 8 seconds timeout
         });
 
-        const raw: any[] = response.data?.data || [];
-        const normalized = raw.map((c: any) => {
-          const normalizedStatus = c.status === 'IN PROGRESS'
-            ? 'RESCUING'
-            : c.status === 'RESOLVED'
-              ? 'SAVED'
-              : c.status;
-
-          const statusStyle = getStatusStyle(normalizedStatus);
-          const coords = Array.isArray(c.location?.coordinates) ? c.location.coordinates : null;
-          const locText = coords?.length === 2 ? `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}` : 'Location Shared';
-
-          return {
-            id: c._id,
-            type: c.description || c.category || 'Reported Case',
-            loc: locText,
-            status: normalizedStatus,
-            color: statusStyle.bg,
-            textColor: statusStyle.text,
-            img: c.image || c.imageUrl || 'https://via.placeholder.com/150'
-          };
-        });
-
-        if (isMounted) setMyReports(normalized);
+        if (isMounted) {
+          const raw = response.data?.data || [];
+          
+          if (raw.length === 0) {
+            setMyReports([]);
+          } else {
+            const normalized = raw.map((c: any) => {
+              const normalizedStatus = c.status === 'IN PROGRESS' ? 'RESCUING' : 
+                                     c.status === 'RESOLVED' ? 'SAVED' : c.status;
+              const statusStyle = getStatusStyle(normalizedStatus);
+              return {
+                id: c._id,
+                type: c.category || c.animalType || 'Animal Report',
+                loc: c.address || 'Location Shared',
+                status: normalizedStatus,
+                color: statusStyle.bg,
+                textColor: statusStyle.text,
+                img: c.imageUrl || 'https://via.placeholder.com/150'
+              };
+            });
+            setMyReports(normalized);
+          }
+          // Sirf success par hi mark karein ki fetch ho gaya
+          fetchedReportsForUserIdRef.current = user.id;
+        }
       } catch (error) {
-        if (isCanceledError(error)) return;
-        console.error('My reports fetch error:', error);
+        if (axios.isCancel(error)) return;
+        console.error('Fetch error:', error);
         if (isMounted) setMyReports([]);
       } finally {
         if (isMounted) setLoadingReports(false);
@@ -103,7 +116,7 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
       isMounted = false;
       controller.abort();
     };
-  }, [getToken, isAuthLoaded, isSignedIn, isUserLoaded, user?.id]);
+  }, [user?.id, isSignedIn, isUserLoaded, isAuthLoaded]);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,7 +190,10 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
       </View>
 
       {loadingReports ? (
-        <ActivityIndicator size="small" color="#00F0D1" style={{ marginBottom: 10 }} />
+        <View style={styles.emptyState}>
+          <Ionicons name="paw-outline" size={40} color="#EEE" />
+          <Text style={styles.storyEmptyText}>Loading your reports...</Text>
+        </View>
       ) : myReports.length === 0 ? (
         <View style={styles.emptyState}>
           <Ionicons name="paw-outline" size={64} color="#EEE" />

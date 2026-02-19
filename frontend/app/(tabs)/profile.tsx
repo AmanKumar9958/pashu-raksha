@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -12,11 +12,7 @@ export default function ProfileScreen() {
   const { signOut, getToken } = useAuth();
   const [stats, setStats] = useState({ totalReports: 0, animalsSaved: 0 });
 
-  useEffect(() => {
-    fetchUserStats();
-  }, []);
-
-  const fetchUserStats = async () => {
+  const fetchUserStats = useCallback(async () => {
     try {
       const token = await getToken();
       // Backend se user ke stats fetch karein
@@ -31,7 +27,11 @@ export default function ProfileScreen() {
     } catch (error) {
       console.log("Stats fetch error:", error);
     }
-  };
+  }, [getToken, user?.id]);
+
+  useEffect(() => {
+    fetchUserStats();
+  }, [fetchUserStats]);
 
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -6,32 +6,44 @@ import { useAuth, useUser } from '@clerk/clerk-expo';
 import { API_URL } from '@/constants';
 
 export default function ReportedCasesScreen() {
-  const [cases, setCases] = useState([]);
+  type CaseItem = {
+    _id: string;
+    image?: string;
+    imageUrl?: string;
+    description?: string;
+    category?: string;
+    status?: string;
+    location?: { coordinates?: number[] };
+    createdAt?: string;
+  };
+
+  const [cases, setCases] = useState<CaseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { getToken } = useAuth();
   const { user } = useUser();
 
   // 1. Fetch Cases from Backend
-  const fetchMyCases = async () => {
+  const fetchMyCases = useCallback(async () => {
     try {
       const token = await getToken();
       // Hum sirf is specific user ke reports fetch karenge
       const response = await axios.get(`${API_URL}/cases/user/${user?.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCases(response.data.data);
+      setCases((response.data?.data as CaseItem[]) || []);
     } catch (error) {
       console.error("Fetch Error:", error);
+      setCases([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [getToken, user?.id]);
 
   useEffect(() => {
     fetchMyCases();
-  }, []);
+  }, [fetchMyCases]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -39,55 +51,90 @@ export default function ReportedCasesScreen() {
   };
 
   // 2. Status Badge Helper
-  const getStatusStyle = (status) => {
-    switch (status) {
-      case 'PENDING': return { bg: '#F3F4F6', text: '#6B7280' };
-      case 'RESCUING': return { bg: '#FFF4E5', text: '#F59E0B' };
-      case 'SAVED': return { bg: '#E1FBF2', text: '#10B981' };
-      default: return { bg: '#F3F4F6', text: '#6B7280' };
-    }
-  };
+  const normalizeStatus = useCallback((status?: string) => {
+    if (!status) return 'PENDING';
+    if (status === 'IN PROGRESS') return 'RESCUING';
+    if (status === 'RESOLVED') return 'SAVED';
+    return status;
+  }, []);
 
-  const renderCaseItem = ({ item }) => {
-    const statusStyle = getStatusStyle(item.status);
-    const reportDate = new Date(item.createdAt).toLocaleDateString('en-IN');
-    const reportTime = new Date(item.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  const getStatusStyle = useCallback((status: string) => {
+    switch (status) {
+      case 'PENDING':
+        return { bg: '#F3F4F6', text: '#6B7280' };
+      case 'RESCUING':
+        return { bg: '#FFF4E5', text: '#F59E0B' };
+      case 'SAVED':
+        return { bg: '#E1FBF2', text: '#10B981' };
+      default:
+        return { bg: '#F3F4F6', text: '#6B7280' };
+    }
+  }, []);
+
+  const toCoordText = useCallback((item: CaseItem) => {
+    const coords = Array.isArray(item.location?.coordinates) ? item.location?.coordinates : null;
+    if (coords && coords.length === 2 && typeof coords[0] === 'number' && typeof coords[1] === 'number') {
+      return `${coords[1].toFixed(4)}, ${coords[0].toFixed(4)}`;
+    }
+    return 'Location Shared';
+  }, []);
+
+  const renderCaseItem = useCallback(({ item }: { item: CaseItem }) => {
+    const normalizedStatus = normalizeStatus(item.status);
+    const statusStyle = getStatusStyle(normalizedStatus);
+    const createdAt = item.createdAt ? new Date(item.createdAt) : null;
+    const reportDate = createdAt ? createdAt.toLocaleDateString('en-IN') : '';
+    const reportTime = createdAt ? createdAt.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+    const title = item.description || item.category || 'Reported Case';
+    const img = item.image || item.imageUrl || 'https://via.placeholder.com/150';
 
     return (
       <View style={styles.card}>
-        <Image source={{ uri: item.imageUrl || 'https://via.placeholder.com/150' }} style={styles.caseImg} />
+        <Image source={{ uri: img }} style={styles.caseImg} />
         
         <View style={styles.detailsContainer}>
           <View style={styles.cardHeader}>
-            <Text style={styles.animalType}>{item.animalType} 🐾</Text>
+            <Text style={styles.animalType} numberOfLines={1}>{title} 🐾</Text>
             <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
-              <Text style={[styles.statusText, { color: statusStyle.text }]}>● {item.status}</Text>
+              <Text style={[styles.statusText, { color: statusStyle.text }]}>● {normalizedStatus}</Text>
             </View>
           </View>
 
           <View style={styles.infoRow}>
             <Ionicons name="location-sharp" size={14} color="#9CA3AF" />
-            <Text style={styles.infoText} numberOfLines={1}>{item.address || 'Location Shared'}</Text>
+            <Text style={styles.infoText} numberOfLines={1}>{toCoordText(item)}</Text>
           </View>
 
-          <View style={styles.dateTimeRow}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
-              <Text style={styles.infoText}>{reportDate}</Text>
+          {(reportDate || reportTime) && (
+            <View style={styles.dateTimeRow}>
+              {reportDate ? (
+                <View style={styles.infoRow}>
+                  <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
+                  <Text style={styles.infoText}>{reportDate}</Text>
+                </View>
+              ) : null}
+              {reportTime ? (
+                <View style={[styles.infoRow, { marginLeft: 15 }]}>
+                  <Ionicons name="time-outline" size={14} color="#9CA3AF" />
+                  <Text style={styles.infoText}>{reportTime}</Text>
+                </View>
+              ) : null}
             </View>
-            <View style={[styles.infoRow, { marginLeft: 15 }]}>
-              <Ionicons name="time-outline" size={14} color="#9CA3AF" />
-              <Text style={styles.infoText}>{reportTime}</Text>
-            </View>
-          </View>
-
-          {item.description && (
-            <Text style={styles.description} numberOfLines={2}>"{item.description}"</Text>
           )}
+
+          {item.description ? (
+            <Text style={styles.description} numberOfLines={2}>
+              {'\u201C'}{item.description}{'\u201D'}
+            </Text>
+          ) : item.category ? (
+            <Text style={styles.description} numberOfLines={2}>Category: {item.category}</Text>
+          ) : null}
         </View>
       </View>
     );
-  };
+  }, [getStatusStyle, normalizeStatus, toCoordText]);
+
+  const keyExtractor = useCallback((item: CaseItem) => item._id, []);
 
   return (
     <View style={styles.container}>
@@ -99,13 +146,13 @@ export default function ReportedCasesScreen() {
         <FlatList
           data={cases}
           renderItem={renderCaseItem}
-          keyExtractor={(item) => item._id}
+          keyExtractor={keyExtractor}
           contentContainerStyle={{ paddingBottom: 20 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="paw-outline" size={80} color="#EEE" />
-              <Text style={styles.emptyText}>You haven't reported any cases yet.</Text>
+              <Text style={styles.emptyText}>You haven’t reported any cases yet.</Text>
             </View>
           }
         />
