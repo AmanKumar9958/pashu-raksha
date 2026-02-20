@@ -107,7 +107,7 @@ export default function ProfileScreen() {
 
         <TouchableOpacity style={[styles.actionBtn, { marginTop: 10 }]} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-          <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Logout Session</Text>
+          <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Logout</Text>
         </TouchableOpacity>
       </View>
 

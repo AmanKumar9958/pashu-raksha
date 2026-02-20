@@ -6,10 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Image,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -79,7 +77,6 @@ export default function ReportScreen() {
 
   const [pickedImageUri, setPickedImageUri] = useState<string | null>(null);
   const [imageUrlInput, setImageUrlInput] = useState('');
-
   const [coords, setCoords] = useState<Coords | null>(null);
 
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -186,7 +183,7 @@ export default function ReportScreen() {
         const status = err?.response?.status;
         if (status === 404) {
           Alert.alert('Complete your profile', 'Please add your phone number first.', [
-            { text: 'Go to Details', onPress: () => router.push('/(tabs)/details' as any) },
+            { text: 'Go to Details', onPress: () => router.push('/details' as any) },
             { text: 'Cancel', style: 'cancel' },
           ]);
           return;
@@ -239,147 +236,88 @@ export default function ReportScreen() {
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>What happened?</Text>
-        <Text style={styles.cardSub}>Choose a category and add a short description.</Text>
-
+        <Text style={styles.sectionTitle}>Category</Text>
         <View style={styles.categoryRow}>
-          {CATEGORIES.map((c) => {
-            const active = c.value === category;
-            return (
-              <TouchableOpacity
-                key={c.value}
-                onPress={() => setCategory(c.value)}
-                style={[styles.categoryPill, active && styles.categoryPillActive]}
-              >
-                <Ionicons name={c.icon} size={16} color={active ? '#000' : '#6B7280'} style={{ marginRight: 6 }} />
-                <Text style={[styles.categoryText, active && styles.categoryTextActive]}>{c.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
+          {CATEGORIES.map((c) => (
+            <TouchableOpacity
+              key={c.value}
+              style={[styles.categoryPill, category === c.value && styles.categoryPillActive]}
+              onPress={() => setCategory(c.value)}
+            >
+              <Ionicons name={c.icon} size={18} color={category === c.value ? '#000' : '#666'} />
+              <Text style={[styles.categoryText, category === c.value && styles.categoryTextActive]}>{c.label}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
+        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Description</Text>
         <TextInput
-          style={styles.textArea}
-          placeholder="Describe the animal’s condition, nearby landmarks, urgency..."
+          style={styles.textarea}
+          placeholder="Describe what you saw…"
           value={description}
           onChangeText={setDescription}
           multiline
-          maxLength={600}
-          textAlignVertical="top"
-        />
-        <Text style={styles.hint}>{description.length}/600</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Photo</Text>
-        <Text style={styles.cardSub}>
-          Attach a clear photo. If Cloudinary isn’t configured, paste an image URL.
-        </Text>
-
-        <TouchableOpacity style={styles.imageBtn} onPress={pickImage} disabled={submitting || uploadingImage}>
-          <Ionicons name="image-outline" size={20} color="#1A1C1E" style={{ marginRight: 8 }} />
-          <Text style={styles.imageBtnText}>{pickedImageUri ? 'Change Photo' : 'Pick Photo'}</Text>
-        </TouchableOpacity>
-
-        {pickedImageUri ? (
-          <Image source={{ uri: pickedImageUri }} style={styles.previewImg} />
-        ) : null}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Or paste image URL (https://...)"
-          value={imageUrlInput}
-          onChangeText={setImageUrlInput}
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType={Platform.select({ ios: 'url', android: 'default' })}
         />
 
-        {cloudinary ? (
-          <Text style={styles.cloudHint}>Uploads enabled via Cloudinary.</Text>
-        ) : (
-          <Text style={styles.cloudHintMuted}>
-            Uploads not configured. Set `EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME` and `EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET`.
-          </Text>
-        )}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Location</Text>
-        <Text style={styles.cardSub}>We use your current location to find nearby rescuers.</Text>
-
-        <View style={styles.locationRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.locationLabel}>Shared coordinates</Text>
-            <Text style={styles.locationValue} numberOfLines={1}>{coordText}</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.locationBtn}
-            onPress={() => requestAndGetLocation().catch((e) => Alert.alert('Location', e?.message || 'Could not fetch location'))}
-            disabled={gettingLocation || submitting}
-          >
+        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Location</Text>
+        <View style={styles.rowBetween}>
+          <Text style={styles.muted}>{coordText}</Text>
+          <TouchableOpacity style={styles.smallBtn} onPress={requestAndGetLocation} disabled={gettingLocation}>
             {gettingLocation ? (
               <ActivityIndicator size="small" color="#000" />
             ) : (
-              <Text style={styles.locationBtnText}>Use current</Text>
+              <Text style={styles.smallBtnText}>Use current</Text>
             )}
           </TouchableOpacity>
         </View>
-      </View>
 
-      <TouchableOpacity style={[styles.submitBtn, (submitting || uploadingImage) && { opacity: 0.6 }]} onPress={submit} disabled={submitting || uploadingImage}>
-        {submitting || uploadingImage ? (
-          <ActivityIndicator color="#000" />
-        ) : (
-          <>
-            <Ionicons name="alert-circle" size={20} color="#000" style={{ marginRight: 8 }} />
-            <Text style={styles.submitBtnText}>REPORT EMERGENCY</Text>
-          </>
-        )}
-      </TouchableOpacity>
+        <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Photo</Text>
+        <TouchableOpacity style={styles.imageBtn} onPress={pickImage}>
+          <Ionicons name="image-outline" size={18} color="#000" />
+          <Text style={styles.imageBtnText}>{pickedImageUri ? 'Change selected image' : 'Pick an image'}</Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.muted, { marginTop: 10, marginBottom: 6 }]}>Or paste image URL</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="https://..."
+          value={imageUrlInput}
+          onChangeText={setImageUrlInput}
+          autoCapitalize="none"
+        />
+
+        <TouchableOpacity style={styles.submitBtn} onPress={submit} disabled={submitting || uploadingImage}>
+          {(submitting || uploadingImage) ? (
+            <ActivityIndicator size="small" color="#000" />
+          ) : (
+            <Text style={styles.submitText}>Submit report</Text>
+          )}
+        </TouchableOpacity>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 20 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 50,
-    marginBottom: 18,
-  },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center' },
-  title: { fontSize: 20, fontWeight: 'bold', color: '#1A1C1E' },
-
-  card: { backgroundColor: '#fff', borderRadius: 22, padding: 16, borderWidth: 1, borderColor: '#F3F4F6', marginBottom: 14 },
-  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1A1C1E' },
-  cardSub: { marginTop: 4, color: '#6B7280', fontSize: 13 },
-
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 12 },
-  categoryPill: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: '#EEE', backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 55, paddingBottom: 12 },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F5F7F9', alignItems: 'center', justifyContent: 'center' },
+  title: { fontSize: 18, fontWeight: 'bold', color: '#1A1C1E' },
+  card: { paddingHorizontal: 18, paddingTop: 10 },
+  sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1A1C1E' },
+  muted: { color: '#6B7280', fontSize: 13 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 },
+  categoryPill: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, borderWidth: 1, borderColor: '#EEE', backgroundColor: '#fff' },
   categoryPillActive: { backgroundColor: '#00F0D1', borderColor: '#00F0D1' },
-  categoryText: { color: '#6B7280', fontSize: 13, fontWeight: '600' },
+  categoryText: { color: '#666', fontWeight: '700', fontSize: 13 },
   categoryTextActive: { color: '#000' },
-
-  textArea: { marginTop: 12, backgroundColor: '#F5F7F9', borderRadius: 14, padding: 14, minHeight: 120, fontSize: 15 },
-  hint: { marginTop: 8, color: '#9CA3AF', fontSize: 12, textAlign: 'right' },
-
-  imageBtn: { marginTop: 12, backgroundColor: '#F9FAFB', padding: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F3F4F6' },
-  imageBtnText: { fontWeight: '700', color: '#1A1C1E' },
-  previewImg: { width: '100%', height: 200, borderRadius: 16, marginTop: 12, backgroundColor: '#EEE' },
-  input: { marginTop: 12, backgroundColor: '#F5F7F9', borderRadius: 14, padding: 14, fontSize: 14 },
-  cloudHint: { marginTop: 10, color: '#10B981', fontSize: 12, fontWeight: '700' },
-  cloudHintMuted: { marginTop: 10, color: '#9CA3AF', fontSize: 12 },
-
-  locationRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 },
-  locationLabel: { color: '#9CA3AF', fontSize: 12 },
-  locationValue: { color: '#1A1C1E', fontWeight: '700', marginTop: 4 },
-  locationBtn: { backgroundColor: '#00F0D1', paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, minWidth: 110, alignItems: 'center' },
-  locationBtnText: { fontWeight: '800', color: '#000' },
-
-  submitBtn: { backgroundColor: '#00F0D1', borderRadius: 22, padding: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 4 },
-  submitBtnText: { fontWeight: '900', fontSize: 15, color: '#000' },
+  textarea: { marginTop: 10, minHeight: 110, borderRadius: 16, backgroundColor: '#F5F7F9', padding: 14, textAlignVertical: 'top' },
+  rowBetween: { marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  smallBtn: { paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#00F0D1', borderRadius: 14 },
+  smallBtnText: { fontWeight: '800', color: '#000' },
+  imageBtn: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, borderRadius: 16, backgroundColor: '#F5F7F9' },
+  imageBtnText: { fontWeight: '700', color: '#000' },
+  input: { borderRadius: 16, backgroundColor: '#F5F7F9', padding: 14 },
+  submitBtn: { marginTop: 20, backgroundColor: '#00F0D1', padding: 16, borderRadius: 18, alignItems: 'center' },
+  submitText: { fontSize: 16, fontWeight: '900', color: '#000' },
 });

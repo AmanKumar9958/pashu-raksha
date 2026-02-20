@@ -29,10 +29,17 @@ export default function RootLayout() {
     <>
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
         <StatusBar style="dark" translucent backgroundColor="transparent" />
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            animationTypeForReplace: 'push',
+            gestureEnabled: true,
+            gestureDirection: 'horizontal',
+          }}
+        >
           <Stack.Screen name="index" />
           <Stack.Screen name="details" />
-          <Stack.Screen name="report" />
         </Stack>
       </ClerkProvider>
     </>
