@@ -186,7 +186,7 @@ export default function ReportScreen() {
         const status = err?.response?.status;
         if (status === 404) {
           Alert.alert('Complete your profile', 'Please add your phone number first.', [
-            { text: 'Go to Details', onPress: () => router.push('/details' as any) },
+            { text: 'Go to Details', onPress: () => router.push('/(tabs)/details' as any) },
             { text: 'Cancel', style: 'cancel' },
           ]);
           return;

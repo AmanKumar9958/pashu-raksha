@@ -174,7 +174,7 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
         <Text style={styles.emergencySub}>Spot an animal in distress? Report it immediately.</Text>
         <TouchableOpacity 
           style={styles.reportBtn}
-          onPress={() => router.push('/report' as any)}
+          onPress={() => router.push('/(tabs)/report' as any)}
         >
           <Ionicons name="alert-circle" size={24} color="black" style={{marginRight: 8}} />
           <Text style={styles.reportBtnText}>REPORT EMERGENCY</Text>
