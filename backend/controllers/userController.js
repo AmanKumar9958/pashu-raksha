@@ -5,17 +5,21 @@ export const syncUser = async (req, res) => {
     try {
         const { clerkId, email, name, role, phone, location, ngoDetails } = req.body;
 
+        const updateDoc = {
+            email,
+            name,
+            role,
+            phone,
+        };
+
+        // Location is optional (user can sign up from anywhere). Only update if provided.
+        if (location !== undefined) updateDoc.location = location;
+        if (ngoDetails !== undefined) updateDoc.ngoDetails = ngoDetails;
+
         const user = await User.findOneAndUpdate(
             { clerkId: clerkId },
-            { 
-                email, 
-                name, 
-                role, 
-                phone, 
-                location, 
-                ngoDetails 
-            },
-            { new: true, upsert: true, runValidators: true }
+            updateDoc,
+            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
         );
 
         res.status(200).json({

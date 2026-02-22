@@ -103,6 +103,8 @@ export default function CitizenDashboard({ userData }: { userData?: any }) {
         }
       } catch (error) {
         if (axios.isCancel(error)) return;
+        const status = (error as any)?.response?.status;
+        if (status === 401 || status === 403) return;
         console.error('Fetch error:', error);
         if (isMounted) setMyReports([]);
       } finally {

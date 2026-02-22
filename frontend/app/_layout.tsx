@@ -2,6 +2,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import * as SecureStore from "expo-secure-store";
 import { ClerkProvider } from "@clerk/clerk-expo";
+// Auth redirects are handled inside the tabs layout.
 
 
 // token cache logic
@@ -28,7 +29,7 @@ export default function RootLayout() {
   return (
     <>
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-        <StatusBar style="dark" translucent backgroundColor="transparent" />
+        <StatusBar style="dark" translucent={false} backgroundColor="#fff" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -40,6 +41,8 @@ export default function RootLayout() {
         >
           <Stack.Screen name="index" />
           <Stack.Screen name="details" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="report" />
         </Stack>
       </ClerkProvider>
     </>

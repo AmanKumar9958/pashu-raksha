@@ -65,8 +65,10 @@ export default function LoginScreen() {
   }, [authLoaded, getToken, isSignedIn, router, user?.id, userLoaded]);
 
   useEffect(() => {
+    if (!authLoaded || !userLoaded) return;
+    if (!isSignedIn) return;
     routeAfterLogin();
-  }, [routeAfterLogin]);
+  }, [authLoaded, isSignedIn, routeAfterLogin, userLoaded]);
 
   const onGoogleLoginPress = useCallback(async () => {
     try {

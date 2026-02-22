@@ -1,57 +1,113 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import axios from 'axios';
 import { API_URL } from '@/constants';
+import CustomModal from '@/components/CustomModal';
+import { useBackendUserProfile } from '@/lib/useBackendUserProfile';
 
 export default function ProfileScreen() {
+  const { role, loading: loadingRole } = useBackendUserProfile();
+
+  if (loadingRole) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#00F0D1" />
+      </View>
+    );
+  }
+
+  if (String(role).toUpperCase() === 'NGO') {
+    return <NGOProfileScreen />;
+  }
+
+  return <CitizenProfileScreen />;
+}
+
+function CitizenProfileScreen() {
   const router = useRouter();
   const { user } = useUser();
-  const { signOut, getToken } = useAuth();
+  const { signOut, getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const [stats, setStats] = useState({ totalReports: 0, animalsSaved: 0 });
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const fetchedForUserIdRef = useRef<string | null>(null);
+  const loggedErrorRef = useRef<string | null>(null);
 
-  const fetchUserStats = useCallback(async () => {
-    try {
-      const token = await getToken();
-      // Backend se user ke stats fetch karein
-      const response = await axios.get(`${API_URL}/users/profile/${user?.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      // Maan lete hain backend saved count bhi bhej raha hai
-      setStats({
-        totalReports: response.data.data.totalReports || 0,
-        animalsSaved: response.data.data.animalsSaved || 0
-      });
-    } catch (error) {
-      console.log("Stats fetch error:", error);
-    }
-  }, [getToken, user?.id]);
+  const getTokenRef = useRef(getToken);
+  useEffect(() => {
+    getTokenRef.current = getToken;
+  }, [getToken]);
 
   useEffect(() => {
-    fetchUserStats();
-  }, [fetchUserStats]);
+    if (!isAuthLoaded) return;
+
+    if (!isSignedIn || !user?.id) {
+      setStats({ totalReports: 0, animalsSaved: 0 });
+      fetchedForUserIdRef.current = null;
+      loggedErrorRef.current = null;
+      return;
+    }
+
+    if (fetchedForUserIdRef.current === user.id) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getTokenRef.current();
+        const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 12000,
+        });
+
+        if (cancelled) return;
+        setStats({
+          totalReports: response.data?.data?.totalReports || 0,
+          animalsSaved: response.data?.data?.animalsSaved || 0,
+        });
+        fetchedForUserIdRef.current = user.id;
+        loggedErrorRef.current = null;
+      } catch (error) {
+        if (cancelled) return;
+        const status = (error as any)?.response?.status;
+        if (status === 401 || status === 403) return;
+        const msg =
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          'Network error';
+        if (loggedErrorRef.current !== msg) {
+          loggedErrorRef.current = msg;
+          console.log('Stats fetch error:', msg);
+        }
+        fetchedForUserIdRef.current = user.id;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthLoaded, isSignedIn, user?.id]);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await signOut();
-          } finally {
-            router.replace('/');
-          }
-        }
-      }
-    ]);
+    setLogoutModalVisible(true);
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <>
+      <CustomModal
+        visible={logoutModalVisible}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        type="danger"
+        onCancel={() => setLogoutModalVisible(false)}
+        onConfirm={async () => {
+          setLogoutModalVisible(false);
+          await signOut();
+        }}
+      />
+
+      <ScrollView style={styles.container}>
       {/* 1. Profile Header */}
       <View style={styles.header}>
         <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
@@ -112,7 +168,192 @@ export default function ProfileScreen() {
       </View>
 
       <Text style={styles.version}>Pashu Raksha v1.0.2 • Made with ❤️</Text>
-    </ScrollView>
+      </ScrollView>
+    </>
+  );
+}
+
+function NGOProfileScreen() {
+  type NgoCaseItem = { _id: string; status?: string };
+
+  const router = useRouter();
+  const { user } = useUser();
+  const { signOut, getToken, isLoaded: isAuthLoaded, isSignedIn } = useAuth();
+  const { profile } = useBackendUserProfile();
+
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [cases, setCases] = useState<NgoCaseItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const fetchedForUserIdRef = useRef<string | null>(null);
+  const loggedErrorRef = useRef<string | null>(null);
+
+  const fetchNgoAllCases = useCallback(async () => {
+    if (!isAuthLoaded) return;
+    if (!isSignedIn || !user?.id) {
+      setCases([]);
+      setLoading(false);
+      setRefreshing(false);
+      fetchedForUserIdRef.current = null;
+      return;
+    }
+
+    if (!refreshing && fetchedForUserIdRef.current === user.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      const res = await axios.get(`${API_URL}/cases/ngo/${user.id}?scope=all`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 12000,
+      });
+      setCases((res.data?.data as NgoCaseItem[]) || []);
+      fetchedForUserIdRef.current = user.id;
+      loggedErrorRef.current = null;
+    } catch (error) {
+      const status = (error as any)?.response?.status;
+      if (status === 401 || status === 403) return;
+      const msg =
+        (error as any)?.response?.data?.message ||
+        (error as any)?.message ||
+        'Network error';
+      if (loggedErrorRef.current !== msg) {
+        loggedErrorRef.current = msg;
+        console.error('NGO profile cases fetch error:', msg);
+      }
+      fetchedForUserIdRef.current = user.id;
+      setCases([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [getToken, isAuthLoaded, isSignedIn, refreshing, user?.id]);
+
+  useEffect(() => {
+    fetchNgoAllCases();
+  }, [fetchNgoAllCases]);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchedForUserIdRef.current = null;
+    fetchNgoAllCases();
+  }, [fetchNgoAllCases]);
+
+  const stats = useMemo(() => {
+    const normalize = (s?: string) => String(s || '').toUpperCase();
+    const total = cases.length;
+    const pending = cases.filter((c) => normalize(c.status) === 'PENDING').length;
+    const inProgress = cases.filter((c) => normalize(c.status) === 'IN PROGRESS' || normalize(c.status) === 'IN_PROGRESS').length;
+    const resolved = cases.filter((c) => normalize(c.status) === 'RESOLVED').length;
+    const transferred = cases.filter((c) => normalize(c.status) === 'TRANSFERRED').length;
+    return { total, pending, inProgress, resolved, transferred };
+  }, [cases]);
+
+  return (
+    <>
+      <CustomModal
+        visible={logoutModalVisible}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        type="danger"
+        onCancel={() => setLogoutModalVisible(false)}
+        onConfirm={async () => {
+          setLogoutModalVisible(false);
+          await signOut();
+        }}
+      />
+
+      <ScrollView
+        style={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+      >
+        <View style={styles.header}>
+          <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
+          <Text style={styles.name}>{user?.fullName || 'NGO Partner'}</Text>
+          <Text style={styles.roleTag}>NGO 🛡️</Text>
+        </View>
+
+        <View style={styles.statsRow}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.pending}</Text>
+            <Text style={styles.statLabel}>Pending</Text>
+          </View>
+          <View style={[styles.statBox, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#EEE' }]}>
+            <Text style={styles.statNumber}>{stats.inProgress}</Text>
+            <Text style={styles.statLabel}>In progress</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.resolved}</Text>
+            <Text style={styles.statLabel}>Solved</Text>
+          </View>
+        </View>
+
+        <View style={[styles.statsRow, { marginTop: 12 }]}>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{stats.transferred}</Text>
+            <Text style={styles.statLabel}>Transferred</Text>
+          </View>
+          <View style={[styles.statBox, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#EEE' }]}>
+            <Text style={styles.statNumber}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Text style={styles.statNumber}>{profile?.ngoDetails?.availableUnits ?? 0}</Text>
+            <Text style={styles.statLabel}>Units</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account Details</Text>
+
+          <View style={styles.infoTile}>
+            <Ionicons name="mail-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Email Address</Text>
+              <Text style={styles.infoValue}>{user?.primaryEmailAddress?.emailAddress}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoTile}>
+            <Ionicons name="call-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Phone Number</Text>
+              <Text style={styles.infoValue}>{profile?.phone || '—'}</Text>
+            </View>
+          </View>
+
+          <View style={styles.infoTile}>
+            <Ionicons name="home-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Shelter / Office</Text>
+              <Text style={styles.infoValue}>{profile?.ngoDetails?.address || '—'}</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>App Settings</Text>
+          <TouchableOpacity style={styles.actionBtn}>
+            <Ionicons name="shield-checkmark-outline" size={20} color="#1A1C1E" />
+            <Text style={styles.actionBtnText}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={20} color="#CCC" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionBtn, { marginTop: 10 }]} onPress={() => setLogoutModalVisible(true)}>
+            <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+            <Text style={[styles.actionBtnText, { color: '#EF4444' }]}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <Text style={styles.version}>Loading NGO stats…</Text>
+        ) : (
+          <Text style={styles.version}>Pashu Raksha v1.0.2 • Made with ❤️</Text>
+        )}
+      </ScrollView>
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,6 +15,7 @@ import * as Location from 'expo-location';
 import axios from 'axios';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { API_URL } from '@/constants';
+import CustomModal from '@/components/CustomModal';
 
 type Category = 'Injured' | 'Sick' | 'Accident' | 'Other';
 type Coords = { latitude: number; longitude: number };
@@ -72,6 +72,25 @@ export default function ReportScreen() {
   const { user } = useUser();
   const { getToken, isSignedIn, isLoaded: isAuthLoaded } = useAuth();
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalMessage, setModalMessage] = useState('');
+  const [modalType, setModalType] = useState<'success' | 'danger' | 'warning'>('warning');
+  const modalConfirmRef = useRef<() => void>(() => setModalVisible(false));
+
+  const showModal = useCallback((params: {
+    title: string;
+    message: string;
+    type?: 'success' | 'danger' | 'warning';
+    onConfirm?: () => void;
+  }) => {
+    setModalTitle(params.title);
+    setModalMessage(params.message);
+    setModalType(params.type ?? 'warning');
+    modalConfirmRef.current = params.onConfirm ?? (() => setModalVisible(false));
+    setModalVisible(true);
+  }, []);
+
   const [category, setCategory] = useState<Category>('Other');
   const [description, setDescription] = useState('');
 
@@ -110,7 +129,11 @@ export default function ReportScreen() {
   const pickImage = async () => {
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (perm.status !== 'granted') {
-      Alert.alert('Permission needed', 'Please allow photo library access to attach an image.');
+      showModal({
+        type: 'warning',
+        title: 'Permission needed',
+        message: 'Please allow photo library access to attach an image.',
+      });
       return;
     }
 
@@ -158,12 +181,20 @@ export default function ReportScreen() {
   const submit = async () => {
     if (!isAuthLoaded) return;
     if (!isSignedIn || !user?.id) {
-      Alert.alert('Sign in required', 'Please sign in to report an emergency.');
+      showModal({
+        type: 'warning',
+        title: 'Sign in required',
+        message: 'Please sign in to report an emergency.',
+      });
       return;
     }
 
     if (description.trim().length < 10) {
-      Alert.alert('Add details', 'Please describe the situation (at least 10 characters).');
+      showModal({
+        type: 'warning',
+        title: 'Incomplete report',
+        message: 'Please describe the situation (at least 10 characters).',
+      });
       return;
     }
 
@@ -182,10 +213,12 @@ export default function ReportScreen() {
       } catch (err: any) {
         const status = err?.response?.status;
         if (status === 404) {
-          Alert.alert('Complete your profile', 'Please add your phone number first.', [
-            { text: 'Go to Details', onPress: () => router.push('/details' as any) },
-            { text: 'Cancel', style: 'cancel' },
-          ]);
+          showModal({
+            type: 'warning',
+            title: 'Complete your profile',
+            message: 'Please add your phone number first.',
+            onConfirm: () => router.push('/details' as any),
+          });
           return;
         }
         throw err;
@@ -213,19 +246,54 @@ export default function ReportScreen() {
         throw new Error(res.data?.message || 'Failed to submit report');
       }
 
-      Alert.alert('Reported', 'Your emergency report has been submitted. NGOs nearby can now respond.');
-      router.back();
+      showModal({
+        type: 'success',
+        title: 'Reported',
+        message: 'Your emergency report has been submitted. NGOs nearby can now respond.',
+        onConfirm: () => router.back(),
+      });
     } catch (error: any) {
       const msg = error?.response?.data?.message || error?.message || 'Something went wrong';
-      Alert.alert('Could not report', msg);
+      showModal({
+        type: 'warning',
+        title: 'Could not report',
+        message: msg,
+      });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const onPressUseCurrent = useCallback(async () => {
+    try {
+      await requestAndGetLocation();
+    } catch (error: any) {
+      showModal({
+        type: 'warning',
+        title: 'Location error',
+        message: error?.message || 'Could not get your current location',
+      });
+    }
+  }, [requestAndGetLocation, showModal]);
+
   const coordText = coords ? `${coords.latitude.toFixed(5)}, ${coords.longitude.toFixed(5)}` : 'Not shared yet';
 
   return (
+    <>
+      <CustomModal
+        visible={modalVisible}
+        title={modalTitle}
+        message={modalMessage}
+        type={modalType}
+        onCancel={() => setModalVisible(false)}
+        onConfirm={() => {
+          setModalVisible(false);
+          const fn = modalConfirmRef.current;
+          modalConfirmRef.current = () => setModalVisible(false);
+          fn?.();
+        }}
+      />
+
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} accessibilityRole="button">
@@ -262,7 +330,7 @@ export default function ReportScreen() {
         <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Location</Text>
         <View style={styles.rowBetween}>
           <Text style={styles.muted}>{coordText}</Text>
-          <TouchableOpacity style={styles.smallBtn} onPress={requestAndGetLocation} disabled={gettingLocation}>
+          <TouchableOpacity style={styles.smallBtn} onPress={onPressUseCurrent} disabled={gettingLocation}>
             {gettingLocation ? (
               <ActivityIndicator size="small" color="#000" />
             ) : (
@@ -295,13 +363,14 @@ export default function ReportScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, paddingTop: 55, paddingBottom: 12 },
-  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F5F7F9', alignItems: 'center', justifyContent: 'center' },
+  backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#00F0D1', alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 18, fontWeight: 'bold', color: '#1A1C1E' },
   card: { paddingHorizontal: 18, paddingTop: 10 },
   sectionTitle: { fontSize: 14, fontWeight: '700', color: '#1A1C1E' },
