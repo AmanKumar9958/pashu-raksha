@@ -95,8 +95,8 @@ export function useBackendUserProfile() {
 
   return {
     profile,
-    role,
-    loading,
+    role: isSignedIn ? role : 'citizen', 
+    loading: loading || !isAuthLoaded,
     error,
     retry,
     isReady: isUserLoaded && isAuthLoaded,

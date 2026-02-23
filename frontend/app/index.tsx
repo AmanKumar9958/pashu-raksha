@@ -4,7 +4,7 @@ import { useAuth, useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
 import * as Linking from "expo-linking";
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  Image, ScrollView, KeyboardAvoidingView, Platform, Alert 
+  Image, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -101,7 +101,11 @@ export default function LoginScreen() {
 
   // If auth state isn't ready yet, avoid rendering the login UI to prevent a flash.
   if (!authLoaded) {
-    return null;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#00F0D1" />
+      </View>
+    );
   }
 
   // While signed in, we immediately route based on profile
@@ -183,6 +187,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#fff' },
+  loadingContainer: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
   headerImageContainer: { height: 320, width: '100%', position: 'relative' },
   headerImage: { width: '100%', height: '100%', borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
   iconBadge: { position: 'absolute', top: 55, left: 25, backgroundColor: '#fff', padding: 10, borderRadius: 25, elevation: 10 },
