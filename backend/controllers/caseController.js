@@ -138,7 +138,7 @@ export const acceptCase = async (req, res) => {
                 status: 'IN PROGRESS',
                 assignedNGO: ngoUser._id
             },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         if(!updatedCase){
@@ -186,7 +186,7 @@ export const resolveCase = async (req, res) => {
         const updatedCase = await Case.findByIdAndUpdate(
             req.params.id,
             { status: 'RESOLVED' },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         res.status(200).json({ success: true, data: updatedCase });
@@ -271,7 +271,7 @@ export const updateCaseStatus = async (req, res) => {
                 status: nextStatus,
                 assignedNGO: existing.assignedNGO || ngoUser._id
             },
-            { new: true, runValidators: true }
+            { returnDocument: 'after', runValidators: true }
         );
 
         return res.status(200).json({ success: true, data: updatedCase });

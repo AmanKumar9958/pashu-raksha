@@ -19,7 +19,7 @@ export const syncUser = async (req, res) => {
         const user = await User.findOneAndUpdate(
             { clerkId: clerkId },
             updateDoc,
-            { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true }
+            { returnDocument: 'after', upsert: true, runValidators: true, setDefaultsOnInsert: true }
         );
 
         res.status(200).json({
