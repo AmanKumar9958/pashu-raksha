@@ -16,7 +16,7 @@ const userSchema = new mongoose.Schema({
         type: String, 
         unique: true,
         required: true,
-        match: [/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/]
+        match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/]
     },
     role: {
         type: String, 
@@ -30,7 +30,8 @@ const userSchema = new mongoose.Schema({
     phone: {
         type: String,
         required: true,
-        length: 10
+        minlength: 10,
+        maxlength: 10
     },
     ngoDetails: {
         isVerified: {type: Boolean, default: false},
