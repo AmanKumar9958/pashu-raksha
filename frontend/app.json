@@ -7,7 +7,6 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pashu-raksha",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.codewavestudio.pashuraksha"
@@ -19,9 +18,20 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
+      "package": "com.codewavestudio.pashuraksha",
       "predictiveBackGestureEnabled": false,
-      "package": "com.codewavestudio.pashuraksha"
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": {
+            "scheme": "pashu-raksha"
+          },
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "static",

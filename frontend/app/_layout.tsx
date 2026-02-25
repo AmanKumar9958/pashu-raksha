@@ -1,87 +1,92 @@
-import { Stack, useRootNavigationState, useRouter } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import * as SecureStore from "expo-secure-store";
-import { ClerkProvider, useAuth } from "@clerk/clerk-expo";
-import React, { useEffect } from "react";
-// Auth redirects are handled at the root layout.
+import * as Linking from 'expo-linking';
+import { useEffect } from 'react';
+import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { ActivityIndicator, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useBackendUserProfile } from '@/lib/useBackendUserProfile';
 
-
-// token cache logic
 const tokenCache = {
   async getToken(key: string) {
-    try{
+    try {
       return SecureStore.getItemAsync(key);
-    } catch (error) {
-      console.error("Error getting token from cache:", error);
+    } catch (err) {
       return null;
     }
   },
-  async saveToken(key: string, value: string){
-    try{
+  async saveToken(key: string, value: string) {
+    try {
       return SecureStore.setItemAsync(key, value);
-    } catch (error) {
-      console.error("Error saving token to cache:", error);
+    } catch (err) {
+      return;
     }
-  }
-}
+  },
+};
 
-function RootNavigator() {
-  const router = useRouter();
-  const navigationState = useRootNavigationState();
+function InitialLayout() {
   const { isLoaded, isSignedIn } = useAuth();
-
-  const getActiveRouteName = (state: any): string | null => {
-    if (!state || !state.routes || state.index == null) return null;
-    const route = state.routes[state.index];
-    if (route?.state) return getActiveRouteName(route.state);
-    return route?.name || null;
-  };
+  const { profile, role, loading } = useBackendUserProfile();
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isLoaded) return;
 
-    // Always force signed-out users back to login.
-    if (!isSignedIn) {
-      router.replace("/");
-      return;
-    }
+    const inTabsGroup = segments[0] === '(citizen)' || segments[0] === '(ngo)';
+    const inDetailsPage = segments[0] === 'details';
 
-    if (!navigationState?.key) return;
-    const activeRouteName = getActiveRouteName(navigationState);
-
-    // If signed in and sitting on the login screen, move to tabs.
-    if (activeRouteName === "index") {
-      router.replace("/(tabs)");
+    if (!isSignedIn && (inTabsGroup || inDetailsPage)) {
+      router.replace('/');
+    } 
+    else if (isSignedIn && !loading) {
+      const hasPhone = Boolean(profile?.phone);
+      // 🚨 AGAR PROFILE MISSING HAI (phone null hai), TOH DETAILS PAR BHEJO
+      if (!hasPhone) {
+        if (!inDetailsPage) {
+          router.replace('/details');
+        }
+      } 
+      // Agar profile complete hai, toh role ke hisab se bhejo
+      else {
+        if (role === 'NGO' && segments[0] !== '(ngo)') {
+          router.replace('/(ngo)/home');
+        } else if (role === 'citizen' && segments[0] !== '(citizen)') {
+          router.replace('/(citizen)/home');
+        }
+      }
     }
-  }, [isLoaded, isSignedIn, navigationState, router]);
+  }, [isSignedIn, isLoaded, profile?.phone, role, loading, segments]);
+
+  const showLoader = !isLoaded || (isSignedIn && loading);
 
   return (
     <>
-      <StatusBar style="dark" translucent={false} backgroundColor="#fff" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: 'slide_from_right',
-          animationTypeForReplace: 'push',
-          gestureEnabled: true,
-          gestureDirection: 'horizontal',
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="details" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="report" />
+      <Stack screenOptions={{ headerShown: false }}>
+        {/* Root index hi hamara login page hai */}
+        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(citizen)" options={{ headerShown: false }} />
+        <Stack.Screen name="(ngo)" options={{ headerShown: false }} />
+        <Stack.Screen name="details" options={{ headerShown: false }} />
       </Stack>
+      <StatusBar style="dark" backgroundColor="#FFFFFF" />
+      {showLoader && (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+          <ActivityIndicator size="large" color="#00F0D1" />
+        </View>
+      )}
     </>
   );
 }
 
 export default function RootLayout() {
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY || "";
-
+  const prefix = Linking.createURL('/');
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <RootNavigator />
+    <ClerkProvider 
+      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} 
+      tokenCache={tokenCache}
+    >
+      <InitialLayout />
     </ClerkProvider>
   );
 }

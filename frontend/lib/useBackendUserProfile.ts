@@ -17,12 +17,7 @@ export type BackendUserProfile = {
     specialization?: string[];
     availableUnits?: number;
     address?: string;
-    createdAt?: string;
   };
-};
-
-const normalizeRole = (role: unknown): BackendRole => {
-  return String(role).toUpperCase() === 'NGO' ? 'NGO' : 'citizen';
 };
 
 export function useBackendUserProfile() {
@@ -33,20 +28,24 @@ export function useBackendUserProfile() {
   const [role, setRole] = useState<BackendRole | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Isse baar-baar फालतू API calls nahi hongi
   const fetchedForUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(async () => {
+    // 1. Agar Clerk abhi load hi nahi hua, toh ruko
     if (!isUserLoaded || !isAuthLoaded) return;
 
+    // 2. Agar user signed in nahi hai, toh state clear karo aur ruko
     if (!isSignedIn || !user?.id) {
-      fetchedForUserIdRef.current = null;
       setProfile(null);
       setRole(null);
-      setError(null);
       setLoading(false);
+      fetchedForUserIdRef.current = null;
       return;
     }
 
+    // 3. Agar wahi user hai jiska data pehle se hai, toh dubara fetch mat karo
     if (fetchedForUserIdRef.current === user.id) {
       setLoading(false);
       return;
@@ -56,51 +55,46 @@ export function useBackendUserProfile() {
     setError(null);
 
     try {
-      const token = await getToken({ skipCache: true });
+      const token = await getToken();
       const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         timeout: 10000,
       });
 
-      const data = (response.data?.data || null) as BackendUserProfile | null;
+      const data = response.data?.data as BackendUserProfile;
+      
       setProfile(data);
-      setRole(normalizeRole(data?.role));
+      // Backend se jo role aaye use normalize karke save karo
+      setRole(data?.role === 'NGO' ? 'NGO' : 'citizen');
+      
       fetchedForUserIdRef.current = user.id;
     } catch (e: any) {
       const status = e?.response?.status;
-      // If profile doesn't exist yet, let UI prompt to complete details.
       if (status === 404) {
+        // User backend mein nahi hai (Shayad naya user hai)
         setProfile(null);
-        setRole(null);
-        setError('Profile not found');
-      } else if (status === 401 || status === 403) {
-        setError('Authentication failed');
+        setRole('citizen'); // Default role
       } else {
-        setError(e?.response?.data?.message || e?.message || 'Network error');
+        setError(e.message || 'Error fetching profile');
       }
-      fetchedForUserIdRef.current = user.id;
     } finally {
       setLoading(false);
     }
-  }, [getToken, isAuthLoaded, isSignedIn, isUserLoaded, user?.id]);
+  }, [isUserLoaded, isAuthLoaded, isSignedIn, user?.id, getToken]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
 
-  const retry = useCallback(() => {
-    fetchedForUserIdRef.current = null;
-    fetchProfile();
-  }, [fetchProfile]);
-
   return {
     profile,
-    role: isSignedIn ? role : 'citizen', 
-    loading: loading || !isAuthLoaded,
+    role,
+    loading,
     error,
-    retry,
-    isReady: isUserLoaded && isAuthLoaded,
-    isSignedIn,
-    clerkId: user?.id || null,
+    isReady: isUserLoaded && isAuthLoaded && !loading,
+    refetch: () => {
+      fetchedForUserIdRef.current = null;
+      fetchProfile();
+    }
   };
 }

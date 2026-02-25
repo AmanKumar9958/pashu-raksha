@@ -1,183 +1,133 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import * as WebBrowser from "expo-web-browser";
-import { useAuth, useSignIn, useOAuth, useUser } from "@clerk/clerk-expo";
-import * as Linking from "expo-linking";
+import * as Linking from 'expo-linking';
+import React, { useState, useCallback } from 'react';
 import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  Image, ScrollView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator 
+  View, Text, StyleSheet, Image, TextInput, 
+  TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions 
 } from 'react-native';
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import { API_URL } from '@/constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useOAuth } from '@clerk/clerk-expo';
+import { Link } from 'expo-router';
 
-// Browser session complete karne ke liye (Important for OAuth)
-WebBrowser.maybeCompleteAuthSession();
+const { height } = Dimensions.get('window');
 
 export default function LoginScreen() {
-  const router = useRouter();
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
-  const { isLoaded: userLoaded, user } = useUser();
-  const routedForUserIdRef = useRef<string | null>(null);
-  const [routing, setRouting] = useState(false);
-  
-  // State management
-  const [role, setRole] = useState('Volunteer'); 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<'Volunteer' | 'NGO'>('Volunteer');
   const [showPassword, setShowPassword] = useState(false);
+  const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
 
-  // Google OAuth Logic
-  const { startOAuthFlow } = useOAuth({ strategy: "oauth_google" });
-
-  const routeAfterLogin = useCallback(async () => {
-    if (!authLoaded || !userLoaded || !isSignedIn || !user?.id) return;
-
-    // Only route once per signed-in user id
-    if (routedForUserIdRef.current === user.id) return;
-    routedForUserIdRef.current = user.id;
-
-    setRouting(true);
+  const onGoogleLogin = useCallback(async () => {
     try {
-      const token = await getToken();
-      const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+      // Clerk ko batao ki login ke baad kahan aana hai
+      const redirectUrl = Linking.createURL('/', { scheme: 'pashu-raksha' });
+      
+      const { createdSessionId, setActive } = await startOAuthFlow({
+        redirectUrl: redirectUrl,
       });
 
-      if (response.data?.data?.phone) {
-        router.replace('/(tabs)');
-      } else {
-        router.replace('/details');
-      }
-    } catch (err: any) {
-      const status = err?.response?.status;
-      // If user is not in DB yet, send to onboarding details
-      if (status === 404) {
-        router.replace('/details');
-      } else {
-        console.error('Post-login profile check error:', err);
-        router.replace('/details');
-      }
-    } finally {
-      setRouting(false);
-    }
-  }, [authLoaded, getToken, isSignedIn, router, user?.id, userLoaded]);
-
-  useEffect(() => {
-    if (!authLoaded || !userLoaded) return;
-    if (!isSignedIn) return;
-    routeAfterLogin();
-  }, [authLoaded, isSignedIn, routeAfterLogin, userLoaded]);
-
-  const onGoogleLoginPress = useCallback(async () => {
-    try {
-      // Avoid starting a new OAuth flow if a session already exists.
-      if (authLoaded && isSignedIn) {
-        routeAfterLogin();
-        return;
-      }
-
-      const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
-        // Yeh URL app.json ki scheme se match hona chahiye
-        redirectUrl: Linking.createURL("/", { scheme: "pashu-raksha" }),
-      });
-
-      if (createdSessionId) {
-        setOAuthActive!({ session: createdSessionId });
-        // After session is active, route based on existing profile
-        routeAfterLogin();
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId });
+        // Note: setActive hone ke baad _layout.tsx ka useEffect 
+        // khud user ko /details par redirect kar dega.
       }
     } catch (err) {
       console.error("OAuth error", err);
-      const message = (err as any)?.errors?.[0]?.message || (err as any)?.message || '';
-      if (typeof message === 'string' && message.toLowerCase().includes('already signed in')) {
-        routeAfterLogin();
-        return;
-      }
-      Alert.alert("Error", "Google Login failed. Please try again.");
     }
-  }, [authLoaded, isSignedIn, routeAfterLogin, startOAuthFlow]);
-
-  // If auth state isn't ready yet, avoid rendering the login UI to prevent a flash.
-  if (!authLoaded) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#00F0D1" />
-      </View>
-    );
-  }
-
-  // While signed in, we immediately route based on profile
-  if (isSignedIn || routing) {
-    return null;
-  }
-
-  // Email/Password Login Logic
-  const onSignInPress = async () => {
-    if (!isLoaded) return;
-    try {
-      const completeSignIn = await signIn.create({ identifier: email, password });
-      await setActive({ session: completeSignIn.createdSessionId });
-      routeAfterLogin();
-    } catch (err: any) {
-      Alert.alert("Login Failed", err.errors[0]?.message || "Check your credentials");
-    }
-  };
+  }, [startOAuthFlow]);
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <ScrollView contentContainerStyle={styles.container} bounces={false} showsVerticalScrollIndicator={false}>
-        <View style={styles.headerImageContainer}>
-          <Image source={{ uri: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e' }} style={styles.headerImage} />
-          <View style={styles.iconBadge}><Ionicons name="paw" size={20} color="#00F0D1" /></View>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.container}
+    >
+      <ScrollView bouncings={false} showsVerticalScrollIndicator={false}>
+        {/* Top Image Section with Gradient Overlay */}
+        <View style={styles.imageContainer}>
+          <Image 
+            source={{ uri: 'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e' }} 
+            style={styles.headerImage}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(255,255,255,1)']}
+            style={styles.gradient}
+          />
+          <View style={styles.pawBadge}>
+            <Ionicons name="paw" size={20} color="#00F0D1" />
+          </View>
         </View>
 
+        {/* Form Section */}
         <View style={styles.formContainer}>
-          <Text style={styles.welcomeText}>Welcome Back</Text>
-          <Text style={styles.subText}>Please enter your details to sign in.</Text>
+          <Text style={styles.welcomeTitle}>Welcome Back</Text>
+          <Text style={styles.subTitle}>Please enter your details to sign in.</Text>
 
           {/* Role Toggle */}
-          <View style={styles.toggleContainer}>
-            {['Volunteer', 'NGO'].map((r) => (
-              <TouchableOpacity key={r} style={[styles.toggleButton, role === r && styles.activeToggle]} onPress={() => setRole(r)}>
-                <Text style={[styles.toggleText, role === r && styles.activeToggleText]}>{r}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.toggleWrapper}>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, role === 'Volunteer' && styles.activeToggle]}
+              onPress={() => setRole('Volunteer')}
+            >
+              <Text style={[styles.toggleText, role === 'Volunteer' && styles.activeToggleText]}>Volunteer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.toggleBtn, role === 'NGO' && styles.activeToggle]}
+              onPress={() => setRole('NGO')}
+            >
+              <Text style={[styles.toggleText, role === 'NGO' && styles.activeToggleText]}>NGO</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Working Google Button */}
-          <TouchableOpacity style={styles.googleButton} onPress={onGoogleLoginPress}>
+          {/* Google Button */}
+          <TouchableOpacity style={styles.googleBtn} onPress={onGoogleLogin}>
             <Image 
               source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }} 
-              style={{ width: 20, height: 20, marginRight: 10, resizeMode: 'contain' }} 
+              style={styles.googleIcon}
             />
-            <Text style={styles.googleButtonText}>Google Login</Text>
+            <Text style={styles.googleText}>Google</Text>
           </TouchableOpacity>
-          
-          <View style={styles.dividerContainer}><View style={styles.line} /><Text style={styles.orText}>Or continue with</Text><View style={styles.line} /></View>
 
-          <View style={styles.inputWrapper}>
+          <View style={styles.divider}>
+              <View style={styles.line} />
+              <Text style={styles.orText}>Or continue with</Text>
+              <View style={styles.line} />
+          </View>
+
+          {/* Inputs */}
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Email Address</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="name@example.com" value={email} onChangeText={setEmail} autoCapitalize="none" />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="mail-outline" size={20} color="#9CA3AF" />
+              <TextInput 
+                placeholder="name@example.com" 
+                style={styles.input}
+                placeholderTextColor="#9CA3AF"
+              />
             </View>
           </View>
 
-          <View style={styles.inputWrapper}>
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <View style={styles.inputContainer}>
-              <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
-              <TextInput style={styles.input} placeholder="........" secureTextEntry={!showPassword} value={password} onChangeText={setPassword} />
+            <View style={styles.inputWrapper}>
+              <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" />
+              <TextInput 
+                placeholder="........" 
+                secureTextEntry={!showPassword}
+                style={styles.input}
+                placeholderTextColor="#9CA3AF"
+              />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#666" />
+                <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
+            <TouchableOpacity style={styles.forgotPass}>
+              <Text style={styles.forgotText}>Forgot Password?</Text>
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity style={styles.signInButton} onPress={onSignInPress}>
-            <Text style={styles.signInButtonText}>Sign In  →</Text>
+          {/* Sign In Button */}
+          <TouchableOpacity style={styles.signInBtn}>
+            <Text style={styles.signInText}>Sign In</Text>
+            <Ionicons name="arrow-forward" size={18} color="#000" />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -186,29 +136,52 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, backgroundColor: '#fff' },
-  loadingContainer: { flex: 1, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center' },
-  headerImageContainer: { height: 320, width: '100%', position: 'relative' },
-  headerImage: { width: '100%', height: '100%', borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
-  iconBadge: { position: 'absolute', top: 55, left: 25, backgroundColor: '#fff', padding: 10, borderRadius: 25, elevation: 10 },
-  formContainer: { paddingHorizontal: 25, paddingTop: 30, paddingBottom: 40, backgroundColor: '#fff', marginTop: -30, borderTopLeftRadius: 30, borderTopRightRadius: 30 },
-  welcomeText: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', color: '#1A1C1E' },
-  subText: { textAlign: 'center', color: '#666', marginBottom: 30, fontSize: 15 },
-  toggleContainer: { flexDirection: 'row', backgroundColor: '#F5F7F9', borderRadius: 25, padding: 6, marginBottom: 30 },
-  toggleButton: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 20 },
+  container: { flex: 1, backgroundColor: '#FFF' },
+  imageContainer: { height: height * 0.35, width: '100%' },
+  headerImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  gradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '60%' },
+  pawBadge: { 
+    position: 'absolute', top: 50, left: 20, 
+    backgroundColor: '#FFF', padding: 10, borderRadius: 20,
+    shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, elevation: 5
+  },
+  formContainer: { paddingHorizontal: 25, marginTop: -20 },
+  welcomeTitle: { fontSize: 28, fontWeight: 'bold', textAlign: 'center', color: '#1A1C1E' },
+  subTitle: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 8, marginBottom: 30 },
+  toggleWrapper: { 
+    flexDirection: 'row', backgroundColor: '#F3F4F6', 
+    borderRadius: 25, padding: 5, marginBottom: 30 
+  },
+  toggleBtn: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 20 },
   activeToggle: { backgroundColor: '#00F0D1' },
-  toggleText: { color: '#666', fontWeight: 'bold' },
+  toggleText: { fontSize: 15, fontWeight: '600', color: '#9CA3AF' },
   activeToggleText: { color: '#000' },
-  inputWrapper: { marginBottom: 20 },
-  label: { marginBottom: 8, fontWeight: '600', color: '#333', fontSize: 14 },
-  inputContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F7F9', borderRadius: 15, paddingHorizontal: 15 },
-  inputIcon: { marginRight: 10 },
-  input: { flex: 1, paddingVertical: 15, fontSize: 16, color: '#000' },
-  signInButton: { backgroundColor: '#00F0D1', padding: 20, borderRadius: 20, alignItems: 'center', marginTop: 10 },
-  signInButtonText: { color: '#000', fontSize: 18, fontWeight: 'bold' },
-  dividerContainer: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 14, fontWeight: '600', color: '#1A1C1E', marginBottom: 8 },
+  inputWrapper: { 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB',
+    borderRadius: 15, paddingHorizontal: 15, borderWidth: 1, borderColor: '#F3F4F6'
+  },
+  input: { flex: 1, paddingVertical: 15, paddingHorizontal: 10, fontSize: 15 },
+  forgotPass: { alignSelf: 'flex-end', marginTop: 10 },
+  forgotText: { color: '#00F0D1', fontSize: 13, fontWeight: '600' },
+  signInBtn: { 
+    backgroundColor: '#00F0D1', flexDirection: 'row', 
+    justifyContent: 'center', alignItems: 'center', gap: 10,
+    paddingVertical: 18, borderRadius: 30, marginTop: 10,
+    shadowColor: '#00F0D1', shadowOpacity: 0.3, shadowRadius: 10, elevation: 5
+  },
+  signInText: { fontSize: 16, fontWeight: 'bold', color: '#000' },
+  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 25 },
   line: { flex: 1, height: 1, backgroundColor: '#EEE' },
-  orText: { marginHorizontal: 15, color: '#999', fontSize: 13 },
-  googleButton: { flexDirection: 'row', borderWidth: 1, borderColor: '#EEE', padding: 15, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  googleButtonText: { fontWeight: '600', color: '#333' },
+  orText: { marginHorizontal: 10, color: '#9CA3AF', fontSize: 12 },
+  googleBtn: { 
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    gap: 12, borderWidth: 1, borderColor: '#EEE', paddingVertical: 15, borderRadius: 30
+  },
+  googleIcon: { width: 20, height: 20 },
+  googleText: { fontSize: 16, fontWeight: '600', color: '#1A1C1E' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 30, marginBottom: 40 },
+  footerBase: { color: '#9CA3AF', fontSize: 14 },
+  signUpText: { color: '#00F0D1', fontSize: 14, fontWeight: 'bold' }
 });
