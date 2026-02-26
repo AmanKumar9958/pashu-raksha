@@ -35,11 +35,6 @@ export default function NGOProfileScreen() {
 
       {/* 1. Profile Header Section */}
       <View style={styles.headerSection}>
-        <Text style={styles.pageTitle}>Profile</Text>
-        <TouchableOpacity style={styles.settingsBtn}>
-          <Ionicons name="settings-outline" size={24} color="#1A1C1E" />
-        </TouchableOpacity>
-        
         <View style={styles.profileInfo}>
           <View style={styles.imageWrapper}>
             <Image source={{ uri: user?.imageUrl }} style={styles.profileImage} />
@@ -133,10 +128,10 @@ export default function NGOProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
-  headerSection: { alignItems: 'center', paddingTop: 60, paddingBottom: 30, backgroundColor: '#FFF', borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
+  headerSection: { alignItems: 'center', paddingTop: 50, paddingBottom: 30, backgroundColor: '#FFF', borderBottomLeftRadius: 40, borderBottomRightRadius: 40 },
   pageTitle: { fontSize: 18, fontWeight: 'bold', color: '#1A1C1E' },
   settingsBtn: { position: 'absolute', top: 60, right: 25 },
-  profileInfo: { alignItems: 'center', marginTop: 25 },
+  profileInfo: { alignItems: 'center', marginTop: 5 },
   imageWrapper: { position: 'relative' },
   profileImage: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: '#F3F4F6' },
   editBadge: { position: 'absolute', bottom: 5, right: 5, backgroundColor: '#00F0D1', padding: 8, borderRadius: 15, borderWidth: 3, borderColor: '#FFF' },
