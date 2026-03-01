@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as Location from 'expo-location';
@@ -52,7 +52,8 @@ export default function DetailsScreen() {
       try {
         const token = await getToken();
         const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
+          timeout: 15000,
         });
 
         // Agar profile already exists aur phone number hai, toh redirect karo
@@ -126,7 +127,7 @@ export default function DetailsScreen() {
 
     setLoading(true);
     try {
-      const token = await getToken({ skipCache: true });
+      const token = await getToken();
       const payload = {
         clerkId: user?.id,
         name: user?.fullName,
@@ -143,7 +144,8 @@ export default function DetailsScreen() {
       };
 
       const response = await axios.post(`${API_URL}/users/sync`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 15000,
       });
 
       if (response.data.success) {
@@ -161,10 +163,13 @@ export default function DetailsScreen() {
         });
       }
     } catch (error: any) {
+      const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
       showModal({
         type: 'warning',
         title: 'Could not save',
-        message: error.response?.data?.message || 'Error saving details',
+        message: isTimeout
+          ? 'Server is taking too long to respond. It may be waking up. Please try again in a few seconds.'
+          : (error.response?.data?.message || 'Error saving details'),
       });
     } finally {
       setLoading(false);
@@ -194,6 +199,7 @@ export default function DetailsScreen() {
       />
 
       <ScrollView contentContainerStyle={styles.container}>
+        <Image source={require('../assets/images/logo.png')} style={styles.heroImage} />
         <Text style={styles.header}>Final Steps 🐾</Text>
         <Text style={styles.subHeader}>Confirm your role and phone to continue.</Text>
 
@@ -261,6 +267,7 @@ export default function DetailsScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 25, flexGrow: 1, backgroundColor: '#fff', justifyContent: 'center' },
+  heroImage: { width: 150, height: 130, alignSelf: 'center', marginBottom: 16, resizeMode: 'contain' },
   header: { fontSize: 26, fontWeight: 'bold', color: '#1A1C1E' },
   subHeader: { color: '#666', marginBottom: 30, marginTop: 5 },
   roleBox: { flexDirection: 'row', gap: 12, marginBottom: 25 },
@@ -268,7 +275,7 @@ const styles = StyleSheet.create({
   activeRole: { backgroundColor: '#00F0D1', borderColor: '#00F0D1' },
   roleText: { fontWeight: '600', color: '#9CA3AF' },
   activeText: { color: '#000' },
-  input: { backgroundColor: '#F9FAFB', padding: 18, borderRadius: 20, marginBottom: 15, fontSize: 16, borderWidth: 1, borderColor: '#F3F4F6' },
+  input: { backgroundColor: '#F9FAFB', padding: 18, borderRadius: 20, marginBottom: 15, fontSize: 16, borderWidth: 1, borderColor: '#F3F4F6', color: '#111827' },
   locationBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 16, borderRadius: 20, marginBottom: 15, borderWidth: 1, borderColor: '#F3F4F6' },
   locationTitle: { fontWeight: 'bold', color: '#1A1C1E' },
   locationBtn: { backgroundColor: '#00F0D1', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 15 },
