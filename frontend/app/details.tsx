@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as Location from 'expo-location';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { API_URL } from '@/constants';
+import { API_URL } from '../constants/index';
 import CustomModal from '@/components/CustomModal';
 
 export default function DetailsScreen() {

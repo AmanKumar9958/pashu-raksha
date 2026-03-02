@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, useUser } from '@clerk/clerk-expo';
-import { useBackendUserProfile } from '@/lib/useBackendUserProfile';
+import { useBackendUserProfile } from '../../lib/useBackendUserProfile';
 import CustomModal from '@/components/CustomModal';
 
 export default function NGOProfileScreen() {

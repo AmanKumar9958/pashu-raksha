@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo'; // Logo fetch karne ke liye
-import { useBackendUserProfile } from '@/lib/useBackendUserProfile'; // Real-time DB data ke liye
+import { useBackendUserProfile } from '../../lib/useBackendUserProfile'; // Real-time DB data ke liye
 
 export default function NGOHome() {
   const router = useRouter();

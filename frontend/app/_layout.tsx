@@ -5,7 +5,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useBackendUserProfile } from '@/lib/useBackendUserProfile';
+import { useBackendUserProfile } from '../lib/useBackendUserProfile';
 
 const tokenCache = {
   async getToken(key: string) {

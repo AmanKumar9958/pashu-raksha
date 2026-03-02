@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 export default function NgoCasesScreen() {
 	return (
 		<View style={styles.container}>
-			<Text style={styles.text}>NGO Cases</Text>
+			<Text style={styles.text}>NGO ALL CASES</Text>
 		</View>
 	);
 }

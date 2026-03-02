@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function NgoLayout() {
+	const insets = useSafeAreaInsets();
+
 	return (
 		<Tabs
 		screenOptions={{
@@ -15,8 +18,8 @@ export default function NgoLayout() {
 			backgroundColor: '#FFFFFF',
 			borderTopWidth: 1,
 			borderTopColor: '#F3F4F6',
-			height: 65,
-			paddingBottom: 10,
+			height: 65 + insets.bottom,
+			paddingBottom: 10 + insets.bottom,
 			paddingTop: 10,
 			},
 			tabBarLabelStyle: {
