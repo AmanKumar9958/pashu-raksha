@@ -34,6 +34,7 @@
     "web": {
       "output": "static"
     },
+    "newArchEnabled": true,
     "plugins": [
       "expo-router",
       [
@@ -49,12 +50,12 @@
         }
       ],
       "expo-secure-store",
+      "./plugins/withRemoveEnableBundleCompression",
       [
         "expo-build-properties",
         {
           "android": {
-            "kotlinVersion": "2.0.21",
-            "newArchEnabled": true
+            "kotlinVersion": "2.0.21"
           }
         }
       ]
