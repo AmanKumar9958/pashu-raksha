@@ -16,7 +16,7 @@
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/icon.png",
-        "backgroundImage": "./assets/images/icon.png",
+        "backgroundImage": "./assets/images/icon.png"
       },
       "package": "com.codewithaman.pashuraksha",
       "edgeToEdgeEnabled": true,
@@ -45,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b40982d3-a1a0-4f7a-8adb-ec2fb883ef2c"
+      }
     }
   }
 }
