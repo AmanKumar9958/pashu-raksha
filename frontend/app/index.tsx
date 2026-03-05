@@ -44,7 +44,7 @@ export default function LoginScreen() {
         {/* Top Image Section with Gradient Overlay */}
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: './assets/images/header-image.png' }} 
+            source={{ uri: './assets/images/header-image.jpg' }} 
             style={styles.headerImage}
           />
           <LinearGradient

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useUser } from '@clerk/clerk-expo'; // Logo fetch karne ke liye
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile'; // Real-time DB data ke liye
+import ScreenTransition from '../../components/ScreenTransition';
 
 export default function NGOHome() {
   const router = useRouter();
@@ -13,14 +14,17 @@ export default function NGOHome() {
   // Loader jab tak DB se data na aa jaye
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#00F0D1" />
-      </View>
+      <ScreenTransition>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+          <ActivityIndicator size="large" color="#00F0D1" />
+        </View>
+      </ScreenTransition>
     );
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScreenTransition>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* 1. Dynamic Header (Logo from Email) */}
       <View style={styles.header}>
         <View style={styles.ngoInfo}>
@@ -107,7 +111,8 @@ export default function NGOHome() {
       </TouchableOpacity>
 
       <Text style={styles.footerNote}>Fetching real-time data from Pashu Raksha DB.</Text>
-    </ScrollView>
+      </ScrollView>
+    </ScreenTransition>
   );
 }
 

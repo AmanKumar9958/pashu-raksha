@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile';
 import CustomModal from '@/components/CustomModal';
+import ScreenTransition from '../../components/ScreenTransition';
 
 export default function NGOProfileScreen() {
   const { user } = useUser();
@@ -13,116 +14,120 @@ export default function NGOProfileScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator size="large" color="#00F0D1" />
-      </View>
+      <ScreenTransition>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+          <ActivityIndicator size="large" color="#00F0D1" />
+        </View>
+      </ScreenTransition>
     );
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <CustomModal
-        visible={logoutModalVisible}
-        title="Logout"
-        message="Are you sure you want to logout from Pashu Raksha?"
-        type="danger"
-        onCancel={() => setLogoutModalVisible(false)}
-        onConfirm={async () => {
-          setLogoutModalVisible(false);
-          await signOut();
-        }}
-      />
+    <ScreenTransition>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <CustomModal
+          visible={logoutModalVisible}
+          title="Logout"
+          message="Are you sure you want to logout from Pashu Raksha?"
+          type="danger"
+          onCancel={() => setLogoutModalVisible(false)}
+          onConfirm={async () => {
+            setLogoutModalVisible(false);
+            await signOut();
+          }}
+        />
 
-      {/* 1. Profile Header Section */}
-      <View style={styles.headerSection}>
-        <View style={styles.profileInfo}>
-          <View style={styles.imageWrapper}>
-            <Image source={{ uri: user?.imageUrl }} style={styles.profileImage} />
-            <TouchableOpacity style={styles.editBadge}>
-              <Ionicons name="pencil" size={14} color="#000" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.ngoName}>{profile?.name || user?.fullName}</Text>
-          {/* NGO Title mentioning the registration status */}
-          <Text style={styles.ngoTitle}>
-            {profile?.ngoDetails?.isVerified ? 'Verified NGO Partner' : 'NGO Representative'}
-          </Text>
-        </View>
-      </View>
-
-      {/* 2. Impact/Stats Card (Dog House Style Icon) */}
-      <View style={styles.statsCard}>
-        <View style={styles.statsHeader}>
-          <View>
-            <Text style={styles.statsLabel}>RESCUE CAPACITY</Text>
-            <Text style={styles.statsValue}>{profile?.ngoDetails?.availableUnits ?? 0} Units</Text>
-          </View>
-          <View style={styles.badgeWrapper}>
-            <Ionicons name="home-outline" size={24} color="#00F0D1" />
-            <Text style={styles.badgeText}>Tier 1</Text>
+        {/* 1. Profile Header Section */}
+        <View style={styles.headerSection}>
+          <View style={styles.profileInfo}>
+            <View style={styles.imageWrapper}>
+              <Image source={{ uri: user?.imageUrl }} style={styles.profileImage} />
+              <TouchableOpacity style={styles.editBadge}>
+                <Ionicons name="pencil" size={14} color="#000" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.ngoName}>{profile?.name || user?.fullName}</Text>
+            {/* NGO Title mentioning the registration status */}
+            <Text style={styles.ngoTitle}>
+              {profile?.ngoDetails?.isVerified ? 'Verified NGO Partner' : 'NGO Representative'}
+            </Text>
           </View>
         </View>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressBar, { width: '75%' }]} />
-        </View>
-        <Text style={styles.progressNote}>75% verification completed</Text>
-      </View>
 
-      {/* 3. Real-time Count Grid */}
-      <View style={styles.gridContainer}>
-        <View style={styles.gridItem}>
-          <Text style={styles.gridNumber}>156</Text>
-          <Text style={styles.gridLabel}>Cases Solved</Text>
+        {/* 2. Impact/Stats Card (Dog House Style Icon) */}
+        <View style={styles.statsCard}>
+          <View style={styles.statsHeader}>
+            <View>
+              <Text style={styles.statsLabel}>RESCUE CAPACITY</Text>
+              <Text style={styles.statsValue}>{profile?.ngoDetails?.availableUnits ?? 0} Units</Text>
+            </View>
+            <View style={styles.badgeWrapper}>
+              <Ionicons name="home-outline" size={24} color="#00F0D1" />
+              <Text style={styles.badgeText}>Tier 1</Text>
+            </View>
+          </View>
+          <View style={styles.progressTrack}>
+            <View style={[styles.progressBar, { width: '75%' }]} />
+          </View>
+          <Text style={styles.progressNote}>75% verification completed</Text>
         </View>
-        <View style={styles.gridItem}>
-          <Text style={styles.gridNumber}>12</Text>
-          <Text style={styles.gridLabel}>Active Rescues</Text>
-        </View>
-        <View style={styles.gridItem}>
-          <Text style={styles.gridNumber}>08</Text>
-          <Text style={styles.gridLabel}>Transferred</Text>
-        </View>
-      </View>
 
-      {/* 4. NGO Account Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>NGO ACCOUNT</Text>
+        {/* 3. Real-time Count Grid */}
+        <View style={styles.gridContainer}>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridNumber}>156</Text>
+            <Text style={styles.gridLabel}>Cases Solved</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridNumber}>12</Text>
+            <Text style={styles.gridLabel}>Active Rescues</Text>
+          </View>
+          <View style={styles.gridItem}>
+            <Text style={styles.gridNumber}>08</Text>
+            <Text style={styles.gridLabel}>Transferred</Text>
+          </View>
+        </View>
+
+        {/* 4. NGO Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>NGO ACCOUNT</Text>
+          
+          <TouchableOpacity style={styles.actionItem}>
+            <View style={[styles.iconBox, { backgroundColor: '#E6F4FE' }]}>
+              <Ionicons name="business-outline" size={20} color="#3B82F6" />
+            </View>
+            <Text style={styles.actionLabel}>Shelter Details</Text>
+            <Ionicons name="chevron-forward" size={18} color="#CCC" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem}>
+            <View style={[styles.iconBox, { backgroundColor: '#F3E8FF' }]}>
+              <Ionicons name="notifications-outline" size={20} color="#A855F7" />
+            </View>
+            <Text style={styles.actionLabel}>Notifications</Text>
+            <Ionicons name="chevron-forward" size={18} color="#CCC" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionItem}>
+            <View style={[styles.iconBox, { backgroundColor: '#E1FBF2' }]}>
+              <Ionicons name="globe-outline" size={20} color="#059669" />
+            </View>
+            <Text style={styles.actionLabel}>Language</Text>
+            <Text style={styles.subLabel}>English</Text>
+            <Ionicons name="chevron-forward" size={18} color="#CCC" />
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.logoutBtn} 
+          onPress={() => setLogoutModalVisible(true)}
+        >
+          <Text style={styles.logoutText}>Log Out</Text>
+        </TouchableOpacity>
         
-        <TouchableOpacity style={styles.actionItem}>
-          <View style={[styles.iconBox, { backgroundColor: '#E6F4FE' }]}>
-            <Ionicons name="business-outline" size={20} color="#3B82F6" />
-          </View>
-          <Text style={styles.actionLabel}>Shelter Details</Text>
-          <Ionicons name="chevron-forward" size={18} color="#CCC" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionItem}>
-          <View style={[styles.iconBox, { backgroundColor: '#F3E8FF' }]}>
-            <Ionicons name="notifications-outline" size={20} color="#A855F7" />
-          </View>
-          <Text style={styles.actionLabel}>Notifications</Text>
-          <Ionicons name="chevron-forward" size={18} color="#CCC" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.actionItem}>
-          <View style={[styles.iconBox, { backgroundColor: '#E1FBF2' }]}>
-            <Ionicons name="globe-outline" size={20} color="#059669" />
-          </View>
-          <Text style={styles.actionLabel}>Language</Text>
-          <Text style={styles.subLabel}>English</Text>
-          <Ionicons name="chevron-forward" size={18} color="#CCC" />
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity 
-        style={styles.logoutBtn} 
-        onPress={() => setLogoutModalVisible(true)}
-      >
-        <Text style={styles.logoutText}>Log Out</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.version}>v1.0.2 • Connected to Backend DB</Text>
-    </ScrollView>
+        <Text style={styles.version}>v1.0.2 • Connected to Backend DB</Text>
+      </ScrollView>
+    </ScreenTransition>
   );
 }
 
@@ -156,7 +161,7 @@ const styles = StyleSheet.create({
   iconBox: { width: 45, height: 45, borderRadius: 15, justifyContent: 'center', alignItems: 'center' },
   actionLabel: { flex: 1, marginLeft: 15, fontSize: 15, fontWeight: '600', color: '#1A1C1E' },
   subLabel: { marginRight: 10, color: '#9CA3AF', fontSize: 14 },
-  logoutBtn: { marginTop: 30, alignItems: 'center' },
-  logoutText: { color: '#EF4444', fontSize: 16, fontWeight: 'bold' },
+  logoutBtn: { marginTop: 20, alignItems: 'center', borderColor: 'red', borderWidth: 1, marginHorizontal: 50, paddingVertical: 12, borderRadius: 20 },
+  logoutText: { color: '#EF4444', fontSize: 18, fontWeight: 'bold' },
   version: { textAlign: 'center', color: '#CCC', fontSize: 12, marginTop: 20, marginBottom: 40 }
 });

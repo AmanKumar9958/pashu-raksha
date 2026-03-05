@@ -1,11 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import ScreenTransition from '../../components/ScreenTransition';
 
 export default function NgoCasesScreen() {
 	return (
-		<View style={styles.container}>
-			<Text style={styles.text}>NGO ALL CASES</Text>
-		</View>
+		<ScreenTransition>
+			<View style={styles.container}>
+				<Text style={styles.text}>NGO ALL CASES</Text>
+			</View>
+		</ScreenTransition>
 	);
 }
 

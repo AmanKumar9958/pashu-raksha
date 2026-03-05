@@ -1,11 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import ScreenTransition from '../../components/ScreenTransition';
 
 export default function CitizenCasesScreen() {
 	return (
-		<View style={styles.container}>
-			<Text style={styles.text}>Citizen Cases</Text>
-		</View>
+		<ScreenTransition>
+			<View style={styles.container}>
+				<Text style={styles.text}>Citizen Cases</Text>
+			</View>
+		</ScreenTransition>
 	);
 }
 

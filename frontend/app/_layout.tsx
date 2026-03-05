@@ -35,6 +35,7 @@ function InitialLayout() {
 
     const inTabsGroup = segments[0] === '(citizen)' || segments[0] === '(ngo)';
     const inDetailsPage = segments[0] === 'details';
+    const inReportPage = segments[0] === 'report';
 
     if (!isSignedIn && (inTabsGroup || inDetailsPage)) {
       router.replace('/');
@@ -43,12 +44,12 @@ function InitialLayout() {
       const hasPhone = Boolean(profile?.phone);
       // 🚨 AGAR PROFILE MISSING HAI (phone null hai), TOH DETAILS PAR BHEJO
       if (!hasPhone) {
-        if (!inDetailsPage) {
+        if (!inDetailsPage && !inReportPage) {
           router.replace('/details');
         }
       } 
       // Agar profile complete hai, toh role ke hisab se bhejo
-      else {
+      else if (!inReportPage) {
         if (role === 'NGO' && segments[0] !== '(ngo)') {
           router.replace('/(ngo)/home');
         } else if (role === 'citizen' && segments[0] !== '(citizen)') {
@@ -68,6 +69,7 @@ function InitialLayout() {
         <Stack.Screen name="(citizen)" options={{ headerShown: false }} />
         <Stack.Screen name="(ngo)" options={{ headerShown: false }} />
         <Stack.Screen name="details" options={{ headerShown: false }} />
+        <Stack.Screen name="report" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
       {showLoader && (
