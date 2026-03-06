@@ -17,7 +17,7 @@ router.get('/user/:clerkId', protect, getUserCases);
 router.get('/ngo/:clerkId', protect, getNgoCases);
 
 router.route('/')
-    .post(createCase)
+    .post(protect, createCase)
     .get(getAllCases);
 
 // NGO accepts a case

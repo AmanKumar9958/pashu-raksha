@@ -16,6 +16,10 @@ const caseSchema = mongoose.Schema({
         type: String, 
         required: true 
     },
+    animalType: {
+        type: String,
+        default: ''
+    },
     category: { 
         type: String, 
         enum: ['Injured', 'Sick', 'Accident', 'Other'], 
@@ -35,6 +39,10 @@ const caseSchema = mongoose.Schema({
             type: [Number],
             required: true
         }
+    },
+    locationText: {
+        type: String,
+        default: ''
     },
     assignedNGO: {
         type: mongoose.Schema.Types.ObjectId, 
