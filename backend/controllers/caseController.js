@@ -65,16 +65,51 @@ export const getNearByCases = async (req, res) => {
 // Create a new case
 export const createCase = async (req, res) => {
     try{
-        const { reporterID, image, description, category, location } = req.body;
+        const clerkId = req.auth?.userId;
+        if (!clerkId) {
+            return res.status(401).json({ success: false, message: 'Unauthenticated' });
+        }
+
+        const user = await User.findOne({ clerkId });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        const { image, description, category, animalType, locationText } = req.body;
+        let coordinates = req.body?.location;
+
+        if (!image || !description) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields: image, description'
+            });
+        }
+
+        if (!Array.isArray(coordinates) || coordinates.length < 2) {
+            const lat = parseFloat(req.body?.latitude);
+            const lng = parseFloat(req.body?.longitude);
+            if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+                coordinates = [lng, lat];
+            }
+        }
+
+        if (!Array.isArray(coordinates) || coordinates.length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing location coordinates'
+            });
+        }
 
         const newCase = await Case.create({
-            reporterID,
+            reporterID: user._id,
             image,
             description,
             category,
+            animalType,
+            locationText,
             location: {
                 type: 'Point',
-                coordinates: location
+                coordinates
             }
         });
 
