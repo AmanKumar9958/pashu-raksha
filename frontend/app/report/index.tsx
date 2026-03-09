@@ -5,11 +5,16 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
 import axios from 'axios';
+import { useAuth } from '@clerk/clerk-expo';
+import { API_URL } from '../../constants';
 
 export default function ReportFormScreen() {
 	const router = useRouter();
+	const { getToken } = useAuth();
 	const [loading, setLoading] = useState(false);
 	const [image, setImage] = useState<string | null>(null);
+	const [imageBase64, setImageBase64] = useState<string | null>(null);
+	const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
 	const [location, setLocation] = useState<Location.LocationObject | null>(null);
 	const [description, setDescription] = useState('');
 	const [animalType, setAnimalType] = useState('');
@@ -34,11 +39,14 @@ export default function ReportFormScreen() {
 		mediaTypes: ImagePicker.MediaTypeOptions.Images,
 		allowsEditing: true,
 		aspect: [4, 3],
-		quality: 0.5, // Compress for faster upload
+		quality: 0.6, // Compress for faster upload
+		base64: true,
 		});
 
 		if (!result.canceled) {
 		setImage(result.assets[0].uri);
+		setImageBase64(result.assets[0].base64 || null);
+		setImageMimeType(result.assets[0].mimeType || 'image/jpeg');
 		}
 	};
 
@@ -49,28 +57,38 @@ export default function ReportFormScreen() {
 		return;
 		}
 
+		if (!location?.coords) {
+		Alert.alert('Location Missing', 'We could not capture your location. Please try again.');
+		return;
+		}
+
+		if (!imageBase64) {
+		Alert.alert('Image Missing', 'Please reselect the image to attach it.');
+		return;
+		}
+
 		setLoading(true);
 		try {
-		// API call placeholder using axios
-		// Bhai, EXPO_PUBLIC_API_URL ka use karna jo .env mein hai
-		const formData = new FormData();
-		formData.append('description', description);
-		formData.append('type', animalType);
-		formData.append('latitude', location?.coords.latitude.toString() || '');
-		formData.append('longitude', location?.coords.longitude.toString() || '');
-		formData.append('locationText', locationText);
-		
-		// Image upload logic
-		const filename = image.split('/').pop();
-		const match = /\.(\w+)$/.exec(filename || '');
-		const type = match ? `image/${match[1]}` : `image`;
-		formData.append('photo', { uri: image, name: filename, type } as any);
+		const token = await getToken();
+		if (!token) {
+			Alert.alert('Not signed in', 'Please sign in again to submit a report.');
+			return;
+		}
+		const data = {
+			image: `data:${imageMimeType};base64,${imageBase64}`,
+			description,
+			animalType,
+			locationText,
+			location: [location.coords.longitude, location.coords.latitude]
+		};
 
-		// await axios.post(`${process.env.EXPO_PUBLIC_API_URL}/reports`, formData);
-		
-		Alert.alert('Success', 'Report submitted! NGO notified.', [
-			{ text: 'OK', onPress: () => router.back() }
-		]);
+		await axios.post(`${API_URL}/cases`, data, {
+			headers: { Authorization: `Bearer ${token}` }
+		});
+			
+			Alert.alert('Success', 'Report submitted! NGO notified.', [
+				{ text: 'OK', onPress: () => router.back() }
+			]);
 		} catch (error) {
 		console.error(error);
 		Alert.alert('Error', 'Something went wrong while submitting.');
