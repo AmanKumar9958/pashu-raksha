@@ -69,7 +69,7 @@ function InitialLayout() {
         <Stack.Screen name="(citizen)" options={{ headerShown: false }} />
         <Stack.Screen name="(ngo)" options={{ headerShown: false }} />
         <Stack.Screen name="details" options={{ headerShown: false }} />
-        <Stack.Screen name="report" options={{ headerShown: false, animation: 'slide_from_right' }} />
+        <Stack.Screen name="report/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
       {showLoader && (
