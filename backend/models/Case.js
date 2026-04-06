@@ -49,6 +49,14 @@ const caseSchema = mongoose.Schema({
         ref: 'User',
         default: null
     },
+    acceptedAt: {
+        type: Date,
+        default: null
+    },
+    resolvedAt: {
+        type: Date,
+        default: null
+    },
     createdAt: {type: Date, default: Date.now}
 }, {timestamps: true});
 

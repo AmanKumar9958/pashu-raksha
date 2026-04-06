@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Modal, Linking, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useUser, useAuth } from '@clerk/clerk-expo'; // Logo fetch & API token
@@ -28,6 +28,8 @@ export default function NGOHome() {
   const { profile, loading, refetch } = useBackendUserProfile(); 
   
   const [urgentCases, setUrgentCases] = useState<any[]>([]);
+  const [selectedCase, setSelectedCase] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const fetchUrgentCases = async () => {
     try {
@@ -167,7 +169,14 @@ export default function NGOHome() {
           }
 
           return (
-            <TouchableOpacity key={caseItem._id} style={styles.urgentCaseCard}>
+            <TouchableOpacity 
+              key={caseItem._id} 
+              style={styles.urgentCaseCard}
+              onPress={() => {
+                setSelectedCase(caseItem);
+                setModalVisible(true);
+              }}
+            >
               <Image 
                 source={{ uri: caseItem.image || 'https://images.unsplash.com/photo-1544568100-847a948585b9' }} 
                 style={styles.caseImg} 
@@ -196,6 +205,108 @@ export default function NGOHome() {
 
       <Text style={styles.footerNote}>Fetching real-time data from Pashu Raksha DB.</Text>
       </ScrollView>
+
+      {/* Case Details Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <Pressable 
+          style={styles.modalOverlay} 
+          onPress={() => setModalVisible(false)}
+        >
+          <Pressable 
+            style={styles.modalBody}
+            onPress={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+          >
+            <View style={styles.modalHandle} />
+            
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Image 
+                source={{ uri: selectedCase?.image }} 
+                style={styles.modalImage} 
+              />
+              
+              <View style={styles.modalContent}>
+                <View style={styles.modalHeader}>
+                  <View>
+                    <Text style={styles.modalTitle}>{selectedCase?.animalType || 'Stray Animal'}</Text>
+                    <Text style={styles.modalSubtitle}>{selectedCase?.category} Case</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={styles.directionCircle}
+                    onPress={() => {
+                      const lat = selectedCase?.location?.coordinates[1];
+                      const lng = selectedCase?.location?.coordinates[0];
+                      if (lat && lng) {
+                        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+                      }
+                    }}
+                  >
+                    <Ionicons name="navigate" size={24} color="#FFF" />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.detailGrid}>
+                  <View style={styles.detailItem}>
+                    <Ionicons name="calendar-outline" size={18} color="#00F0D1" />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.detailLabel}>Posted On</Text>
+                      <Text style={styles.detailValue}>
+                        {selectedCase?.createdAt ? new Date(selectedCase.createdAt).toLocaleDateString() : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.detailItem}>
+                    <Ionicons name="person-outline" size={18} color="#00F0D1" />
+                    <View style={{ marginLeft: 10 }}>
+                      <Text style={styles.detailLabel}>Reported By</Text>
+                      <Text style={styles.detailValue}>
+                      {selectedCase?.reporterID?.name || (typeof selectedCase?.reporterID === 'string' ? 'Loading Name...' : 'Anonymous')}
+                    </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.divider} />
+
+                <View style={[styles.detailItem, { marginBottom: 15 }]}>
+                  <Ionicons name="location-outline" size={18} color="#00F0D1" />
+                  <View style={{ marginLeft: 10, flex: 1 }}>
+                    <Text style={styles.detailLabel}>Location</Text>
+                    <Text style={styles.detailValue}>{selectedCase?.locationText || 'Gauhati, Assam'}</Text>
+                  </View>
+                </View>
+
+                <Text style={styles.descriptionTitle}>Description</Text>
+                <Text style={styles.modalDescription}>{selectedCase?.description}</Text>
+
+                <View style={{ height: 30 }} />
+                
+                <TouchableOpacity 
+                  style={styles.modalRescueBtn}
+                  onPress={() => {
+                    handleRescue(selectedCase?._id);
+                    setModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalRescueText}>Accept Rescue</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.closeBtn}
+                  onPress={() => setModalVisible(false)}
+                >
+                  <Text style={styles.closeBtnText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ScreenTransition>
   );
 }
@@ -234,5 +345,27 @@ const styles = StyleSheet.create({
   timeText: { fontSize: 11, color: '#9CA3AF' },
   viewBtn: { backgroundColor: '#00F0D1', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 12 },
   viewBtnText: { fontSize: 12, fontWeight: 'bold', color: '#000' },
-  footerNote: { textAlign: 'center', color: '#CCC', fontSize: 11, marginTop: 10, marginBottom: 40 }
+  footerNote: { textAlign: 'center', color: '#CCC', fontSize: 11, marginTop: 10, marginBottom: 40 },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalBody: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '85%', overflow: 'hidden' },
+  modalHandle: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginVertical: 15 },
+  modalImage: { width: '100%', height: 250 },
+  modalContent: { padding: 25 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
+  modalTitle: { fontSize: 24, fontWeight: 'bold', color: '#1A1C1E' },
+  modalSubtitle: { fontSize: 14, color: '#9CA3AF' },
+  directionCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#00F0D1', justifyContent: 'center', alignItems: 'center', elevation: 5 },
+  detailGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  detailItem: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  detailLabel: { fontSize: 12, color: '#9CA3AF' },
+  detailValue: { fontSize: 14, fontWeight: '600', color: '#4B5563', marginLeft: 10 },
+  divider: { height: 1, backgroundColor: '#F3F4F6', marginVertical: 15 },
+  descriptionTitle: { fontSize: 16, fontWeight: 'bold', color: '#1A1C1E', marginBottom: 8 },
+  modalDescription: { fontSize: 15, color: '#4B5563', lineHeight: 22 },
+  modalRescueBtn: { backgroundColor: '#00F0D1', padding: 18, borderRadius: 15, alignItems: 'center', marginTop: 20 },
+  modalRescueText: { fontSize: 16, fontWeight: 'bold', color: '#1A1C1E' },
+  closeBtn: { padding: 18, alignItems: 'center' },
+  closeBtnText: { color: '#9CA3AF', fontWeight: '600' }
 });

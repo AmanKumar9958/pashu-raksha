@@ -8,66 +8,66 @@ export default function NgoLayout() {
 
 	return (
 		<Tabs
-		screenOptions={{
-			// Active tab ka color wahi cyan (#00F0D1)
-			tabBarActiveTintColor: '#00F0D1',
-			// Inactive tabs ka color gray (#9CA3AF)
-			tabBarInactiveTintColor: '#9CA3AF',
-			headerShown: false,
-			tabBarStyle: {
-			backgroundColor: '#FFFFFF',
-			borderTopWidth: 1,
-			borderTopColor: '#F3F4F6',
-			height: 65 + insets.bottom,
-			paddingBottom: 10 + insets.bottom,
-			paddingTop: 10,
-			},
-			tabBarLabelStyle: {
-			fontSize: 12,
-			fontWeight: '600',
-			},
-		}}
+			screenOptions={{
+				// Active tab ka color wahi cyan (#00F0D1)
+				tabBarActiveTintColor: '#00F0D1',
+				// Inactive tabs ka color gray (#9CA3AF)
+				tabBarInactiveTintColor: '#9CA3AF',
+				headerShown: false,
+				tabBarStyle: {
+					backgroundColor: '#FFFFFF',
+					borderTopWidth: 1,
+					borderTopColor: '#F3F4F6',
+					height: 65 + insets.bottom,
+					paddingBottom: 10 + insets.bottom,
+					paddingTop: 10,
+				},
+				tabBarLabelStyle: {
+					fontSize: 12,
+					fontWeight: '600',
+				},
+			}}
 		>
-		{/* 1. Home Tab */}
-		<Tabs.Screen
-			name="home"
-			options={{
-			title: 'Home',
-			tabBarIcon: ({ color, size }) => (
-				<Ionicons name="home" size={size} color={color} />
-			),
-			}}
-		/>
+			{/* 1. Home Tab */}
+			<Tabs.Screen
+				name="home"
+				options={{
+					title: 'Home',
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="home" size={size} color={color} />
+					),
+				}}
+			/>
 
-		{/* 2. Map/Cases Tab (Dog House Icon as requested) */}
-		<Tabs.Screen
-			name="cases"
-			options={{
-			title: 'Map',
-			tabBarIcon: ({ color, size }) => (
-				// Shield ki jagah Dog House (paw) ya business icon use kar sakte hain
-				<Ionicons name="paw" size={size} color={color} />
-			),
-			}}
-		/>
+			{/* 2. Map/Cases Tab (Dog House Icon as requested) */}
+			<Tabs.Screen
+				name="cases"
+				options={{
+					title: 'Cases',
+					tabBarIcon: ({ color, size }) => (
+						// Shield ki jagah Dog House (paw) ya business icon use kar sakte hain
+						<Ionicons name="paw" size={size} color={color} />
+					),
+				}}
+			/>
 
-		<Tabs.Screen
-			name="profile"
-			options={{
-			title: 'Profile',
-			tabBarIcon: ({ color, size }) => (
-				<Ionicons name="person" size={size} color={color} />
-			),
-			}}
-		/>
+			<Tabs.Screen
+				name="profile"
+				options={{
+					title: 'Profile',
+					tabBarIcon: ({ color, size }) => (
+						<Ionicons name="person" size={size} color={color} />
+					),
+				}}
+			/>
 
-		{/* 4. Hide Notifications from Tab Bar */}
-		<Tabs.Screen
-			name="notifications"
-			options={{
-				href: null,
-			}}
-		/>
+			{/* 4. Hide Notifications from Tab Bar */}
+			<Tabs.Screen
+				name="notifications"
+				options={{
+					href: null,
+				}}
+			/>
 		</Tabs>
 	);
 }

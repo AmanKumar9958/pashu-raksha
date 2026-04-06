@@ -52,8 +52,8 @@ export default function ReportFormScreen() {
 
 	// 3. Submit Report to Backend
 	const handleSubmit = async () => {
-		if (!image || !description || !animalType) {
-		Alert.alert('Missing Info', 'Please provide an image, animal type, and description.');
+		if (!image || !description || !animalType || !locationText) {
+		Alert.alert('Missing Info', 'Please provide an image, animal type, description, and detailed location.');
 		return;
 		}
 

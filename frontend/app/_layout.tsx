@@ -59,24 +59,26 @@ function InitialLayout() {
     }
   }, [isSignedIn, isLoaded, profile?.phone, role, loading, segments]);
 
-  const showLoader = !isLoaded || (isSignedIn && loading);
+  if (!isLoaded || (isSignedIn && loading)) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
+        <ActivityIndicator size="large" color="#00F0D1" />
+        <StatusBar style="dark" />
+      </View>
+    );
+  }
 
   return (
     <>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Root index hi hamara login page hai */}
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="index" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="(citizen)" options={{ headerShown: false }} />
         <Stack.Screen name="(ngo)" options={{ headerShown: false }} />
         <Stack.Screen name="details" options={{ headerShown: false }} />
         <Stack.Screen name="report/index" options={{ headerShown: false, animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar style="dark" backgroundColor="#FFFFFF" />
-      {showLoader && (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-          <ActivityIndicator size="large" color="#00F0D1" />
-        </View>
-      )}
     </>
   );
 }

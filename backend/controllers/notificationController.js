@@ -72,6 +72,7 @@ export const respondTransfer = async (req, res) => {
                 caseDocument.assignedNGO = notification.receiver;
                 // Leave it IN PROGRESS, or ensure it's IN PROGRESS. 
                 caseDocument.status = 'IN PROGRESS'; 
+                caseDocument.acceptedAt = new Date(); // Update start time for the new NGO
                 await caseDocument.save();
 
                 // To track transferred, we increment the sender's generic "transferredCount" which doesn't formally exist on schema yet

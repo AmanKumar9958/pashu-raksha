@@ -19,7 +19,7 @@ export const getNearByCases = async (req, res) => {
 
         const hasGeo = lat !== undefined && lng !== undefined && distance !== undefined;
         if (!hasGeo) {
-            const cases = await Case.find().sort({ createdAt: -1 });
+            const cases = await Case.find().populate('reporterID', 'name').sort({ createdAt: -1 });
             return res.status(200).json({
                 success: true,
                 length: cases.length,
@@ -37,7 +37,6 @@ export const getNearByCases = async (req, res) => {
                 message: 'Invalid lat/lng/distance query params'
             });
         }
-
         const cases = await Case.find({
             location: {
                 $near: {
@@ -48,7 +47,7 @@ export const getNearByCases = async (req, res) => {
                     $maxDistance: distanceKm * 1000
                 }
             }
-        }).sort({ createdAt: -1 });
+        }).populate('reporterID', 'name').sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
@@ -145,7 +144,7 @@ export const createCase = async (req, res) => {
 // Get all cases for NGOs
 export const getAllCases = async (req, res) => {
     try{
-        const cases = await Case.find().sort({ createdAt: -1});
+        const cases = await Case.find().populate('reporterID', 'name').sort({ createdAt: -1});
         res.status(200).json({
             success: true,
             length: cases.length,
@@ -187,7 +186,8 @@ export const acceptCase = async (req, res) => {
             req.params.id,
             {
                 status: 'IN PROGRESS',
-                assignedNGO: ngoUser._id
+                assignedNGO: ngoUser._id,
+                acceptedAt: new Date()
             },
             { returnDocument: 'after', runValidators: true }
         );
@@ -236,7 +236,10 @@ export const resolveCase = async (req, res) => {
 
         const updatedCase = await Case.findByIdAndUpdate(
             req.params.id,
-            { status: 'RESOLVED' },
+            { 
+                status: 'RESOLVED',
+                resolvedAt: new Date()
+            },
             { returnDocument: 'after', runValidators: true }
         );
 
@@ -273,7 +276,7 @@ export const getNgoCases = async (req, res) => {
             query.status = { $in: ['PENDING', 'IN PROGRESS'] };
         }
 
-        const cases = await Case.find(query).sort({ createdAt: -1 });
+        const cases = await Case.find(query).populate('reporterID', 'name').sort({ createdAt: -1 });
         return res.status(200).json({ success: true, length: cases.length, data: cases });
     } catch (error) {
         console.error(`Error fetching NGO cases: ${error.message}`);
@@ -342,6 +345,7 @@ export const getSuccessStories = async (req, res) => {
 
         const [stories, savedThisMonth] = await Promise.all([
             Case.find({ status: 'RESOLVED' })
+                .populate('reporterID', 'name')
                 .sort({ updatedAt: -1, createdAt: -1 })
                 .limit(limit),
             Case.countDocuments({
@@ -387,7 +391,7 @@ export const getUserCases = async (req, res) => {
             });
         }
 
-        const cases = await Case.find({ reporterID: user._id }).sort({ createdAt: -1 });
+        const cases = await Case.find({ reporterID: user._id }).populate('reporterID', 'name').sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             length: cases.length,
