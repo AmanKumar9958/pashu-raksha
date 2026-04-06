@@ -55,5 +55,10 @@
     "eslint-config-expo": "~10.0.0",
     "typescript": "~5.9.2"
   },
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "utf-8-validate": "5.0.10"
+  },
   "private": true
 }
