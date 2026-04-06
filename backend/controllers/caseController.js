@@ -1,5 +1,7 @@
 import Case from "../models/Case.js";
 import User from "../models/User.js";
+import cloudinary from "../config/cloudinary.js";
+
 
 const normalizeStatus = (status) => {
     const s = String(status || '').trim().toUpperCase();
@@ -100,9 +102,23 @@ export const createCase = async (req, res) => {
             });
         }
 
+        // Upload image to Cloudinary if it is a base64 string
+        let uploadedImageUrl = image;
+        if (typeof image === 'string' && image.startsWith('data:image')) {
+            try {
+                const uploadRes = await cloudinary.uploader.upload(image, {
+                    folder: 'pashu-raksha/cases'
+                });
+                uploadedImageUrl = uploadRes.secure_url;
+            } catch (err) {
+                console.error('Cloudinary upload error:', err);
+                return res.status(500).json({ success: false, message: 'Image upload failed' });
+            }
+        }
+
         const newCase = await Case.create({
             reporterID: user._id,
-            image,
+            image: uploadedImageUrl,
             description,
             category,
             animalType,

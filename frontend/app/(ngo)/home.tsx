@@ -2,14 +2,77 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useUser } from '@clerk/clerk-expo'; // Logo fetch karne ke liye
+import { useUser, useAuth } from '@clerk/clerk-expo'; // Logo fetch & API token
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile'; // Real-time DB data ke liye
 import ScreenTransition from '../../components/ScreenTransition';
+import axios from 'axios';
+import { API_URL } from '../../constants';
+import { Alert } from 'react-native';
+
+const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of the earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);  
+  const dLon = (lon2 - lon1) * (Math.PI / 180); 
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2); 
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  return (R * c).toFixed(1);
+};
 
 export default function NGOHome() {
   const router = useRouter();
-  const { user } = useUser(); // User's email profile logo yahan se aayega
-  const { profile, loading, refetch } = useBackendUserProfile(); // Real-time DB stats
+  const { user } = useUser(); 
+  const { getToken } = useAuth();
+  const { profile, loading, refetch } = useBackendUserProfile(); 
+  
+  const [urgentCases, setUrgentCases] = useState<any[]>([]);
+
+  const fetchUrgentCases = async () => {
+    try {
+      const coords = profile?.location?.coordinates;
+      let url = `${API_URL}/cases/nearby`;
+      if (coords && coords.length === 2) {
+        url += `?lng=${coords[0]}&lat=${coords[1]}&distance=50`;
+      }
+      const res = await axios.get(url);
+      const pendingCases = (res.data.data || []).filter((c: any) => c.status === 'PENDING');
+      setUrgentCases(pendingCases);
+    } catch (err) {
+      console.error('Error fetching urgent cases', err);
+    }
+  };
+
+  useEffect(() => {
+    if (profile) {
+      fetchUrgentCases();
+      const interval = setInterval(fetchUrgentCases, 15000); // Real-time polling every 15s
+      return () => clearInterval(interval);
+    }
+  }, [profile]);
+
+  const handleRescue = async (caseId: string) => {
+    try {
+      const token = await getToken();
+      await axios.put(`${API_URL}/cases/${caseId}/accept`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      Alert.alert('Success', 'Case has been pushed to your Ongoing flow!', [
+         { text: 'View Ongoing', onPress: () => router.push('/(ngo)/cases') },
+         { text: 'OK' }
+      ]);
+      fetchUrgentCases();
+      refetch(); // Update global DB stats
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+          Alert.alert('Too slow', 'Another NGO already accepted this case.');
+          fetchUrgentCases();
+      } else {
+          Alert.alert('Error', 'Unable to accept this case at the moment.');
+      }
+    }
+  };
 
   // Loader jab tak DB se data na aa jaye
   if (loading) {
@@ -82,33 +145,54 @@ export default function NGOHome() {
       {/* 4. Urgent Reports Section */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Urgent Reports</Text>
-        <TouchableOpacity onPress={refetch}>
+        <TouchableOpacity onPress={() => { refetch(); fetchUrgentCases(); }}>
           <Ionicons name="refresh" size={20} color="#00F0D1" />
         </TouchableOpacity>
       </View>
 
-      {/* Placeholder for real-time list integration */}
-      <TouchableOpacity style={styles.urgentCaseCard}>
-        <Image 
-          source={{ uri: 'https://images.unsplash.com/photo-1544568100-847a948585b9' }} 
-          style={styles.caseImg} 
-        />
-        <View style={styles.caseContent}>
-          <View style={styles.caseHeader}>
-            <Text style={styles.caseTitle}>Injured Stray</Text>
-            <View style={styles.distanceTag}>
-              <Text style={styles.distanceText}>NEW</Text>
-            </View>
-          </View>
-          <Text style={styles.caseLoc}><Ionicons name="pin" size={12} /> {profile?.ngoDetails?.address || 'Detecting...'}</Text>
-          <View style={styles.caseFooter}>
-            <Text style={styles.timeText}>Awaiting Action</Text>
-            <TouchableOpacity style={styles.viewBtn}>
-              <Text style={styles.viewBtnText}>Rescue</Text>
-            </TouchableOpacity>
-          </View>
+      {urgentCases.length === 0 ? (
+        <View style={{ alignItems: 'center', marginVertical: 30 }}>
+            <Ionicons name="shield-checkmark" size={50} color="#E5E7EB" />
+            <Text style={{ color: '#9CA3AF', marginTop: 10 }}>No urgent cases nearby. Great!</Text>
         </View>
-      </TouchableOpacity>
+      ) : (
+        urgentCases.map((caseItem) => {
+          let distanceLabel = 'Calculating...';
+          const myCoords = profile?.location?.coordinates;
+          const caseCoords = caseItem.location?.coordinates;
+          
+          if (myCoords && myCoords.length === 2 && caseCoords && caseCoords.length === 2) {
+            // MongoDB uses [lng, lat], Haversine needs (lat1, lon1, lat2, lon2)
+            distanceLabel = getDistanceFromLatLonInKm(myCoords[1], myCoords[0], caseCoords[1], caseCoords[0]) + " km";
+          }
+
+          return (
+            <TouchableOpacity key={caseItem._id} style={styles.urgentCaseCard}>
+              <Image 
+                source={{ uri: caseItem.image || 'https://images.unsplash.com/photo-1544568100-847a948585b9' }} 
+                style={styles.caseImg} 
+              />
+              <View style={styles.caseContent}>
+                <View style={styles.caseHeader}>
+                  <Text style={styles.caseTitle}>{caseItem.category || 'Injured Stray'}</Text>
+                  <View style={styles.distanceTag}>
+                    <Text style={styles.distanceText}>{distanceLabel}</Text>
+                  </View>
+                </View>
+                <Text style={styles.caseLoc} numberOfLines={1}>
+                   <Ionicons name="pin" size={12} /> {caseItem.locationText || caseItem.animalType || 'Location unknown'}
+                </Text>
+                <View style={styles.caseFooter}>
+                  <Text style={styles.timeText}>Awaiting Action</Text>
+                  <TouchableOpacity style={styles.viewBtn} onPress={() => handleRescue(caseItem._id)}>
+                    <Text style={styles.viewBtnText}>Rescue</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })
+      )}
 
       <Text style={styles.footerNote}>Fetching real-time data from Pashu Raksha DB.</Text>
       </ScrollView>
