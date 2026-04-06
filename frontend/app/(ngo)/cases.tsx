@@ -159,7 +159,7 @@ export default function NgoCasesScreen() {
 				<View style={styles.dateRow}>
 					<View style={styles.dateItem}>
 						<Ionicons name="time-outline" size={12} color="#9CA3AF" />
-						<Text style={styles.dateText}>Acc: {item.acceptedAt ? new Date(item.acceptedAt).toLocaleDateString() : new Date(item.createdAt).toLocaleDateString()}</Text>
+						<Text style={styles.dateText}>Acc: {item?.acceptedAt ? new Date(item.acceptedAt).toLocaleDateString() : (item?.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'N/A')}</Text>
 					</View>
 					<View style={styles.dateItem}>
 						<Ionicons name="calendar-outline" size={12} color="#059669" />
@@ -280,7 +280,7 @@ export default function NgoCasesScreen() {
 												<Text style={styles.detailValue}>
 													{selectedCase?.acceptedAt 
 														? new Date(selectedCase.acceptedAt).toLocaleDateString() 
-														: (selectedCase?.status !== 'PENDING' ? new Date(selectedCase.updatedAt).toLocaleDateString() : 'N/A')}
+														: (selectedCase?.updatedAt ? new Date(selectedCase.updatedAt).toLocaleDateString() : 'N/A')}
 												</Text>
 											</View>
 										</View>

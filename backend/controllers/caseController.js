@@ -111,7 +111,11 @@ export const createCase = async (req, res) => {
                 uploadedImageUrl = uploadRes.secure_url;
             } catch (err) {
                 console.error('Cloudinary upload error:', err);
-                return res.status(500).json({ success: false, message: 'Image upload failed' });
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Image upload failed',
+                    error: err.message || err.error?.message || 'Unknown Cloudinary error'
+                });
             }
         }
 

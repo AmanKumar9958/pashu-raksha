@@ -79,6 +79,7 @@ export default function ReportFormScreen() {
 			description,
 			animalType,
 			locationText,
+			category: 'Other',
 			location: [location.coords.longitude, location.coords.latitude]
 		};
 
@@ -89,9 +90,11 @@ export default function ReportFormScreen() {
 			Alert.alert('Success', 'Report submitted! NGO notified.', [
 				{ text: 'OK', onPress: () => router.back() }
 			]);
-		} catch (error) {
+		} catch (error: any) {
 		console.error(error);
-		Alert.alert('Error', 'Something went wrong while submitting.');
+		const errorMsg = error.response?.data?.message || 'Something went wrong while submitting.';
+		const errorDetail = error.response?.data?.error ? `\nDetails: ${error.response?.data?.error}` : '';
+		Alert.alert('Error', errorMsg + errorDetail);
 		} finally {
 		setLoading(false);
 		}

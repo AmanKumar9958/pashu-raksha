@@ -40,11 +40,11 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
       style={styles.container}
     >
-      <ScrollView bouncings={false} showsVerticalScrollIndicator={false}>
+      <ScrollView bounces={false} showsVerticalScrollIndicator={false}>
         {/* Top Image Section with Gradient Overlay */}
         <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: './assets/images/header-image.jpg' }} 
+            source={require('../assets/images/header-image.jpg')} 
             style={styles.headerImage}
           />
           <LinearGradient
