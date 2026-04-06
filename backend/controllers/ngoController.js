@@ -1,4 +1,7 @@
 import User from '../models/User.js';
+import Case from '../models/Case.js';
+import Notification from '../models/Notification.js';
+
 
 // Get all NGOs within specified radius
 export const getNearByNGOs = async (req, res) => {
@@ -43,7 +46,7 @@ export const getNearByNGOs = async (req, res) => {
             length: ngos.length,
             data: ngos
         });
-    } catch (error){
+    } catch (error) {
         console.error(`Error fetching nearby NGOs: ${error.message}`);
         res.status(500).json({
             success: false,
@@ -51,3 +54,33 @@ export const getNearByNGOs = async (req, res) => {
         });
     }
 }
+
+// Get all NGOs with their statistics for transfer list
+export const getAllNGOsWithStats = async (req, res) => {
+    try {
+        const ngos = await User.find({ role: 'NGO' }).select('name location ngoDetails clerkId');
+        
+        const ngoStats = await Promise.all(ngos.map(async (ngo) => {
+            const solved = await Case.countDocuments({ assignedNGO: ngo._id, status: 'RESOLVED' });
+            const active = await Case.countDocuments({ assignedNGO: ngo._id, status: 'IN PROGRESS' });
+            const transferred = await Notification.countDocuments({ sender: ngo._id, type: 'TRANSFER_REQUEST', status: 'ACCEPTED' });
+            
+            return {
+                ...ngo.toObject(),
+                stats: {
+                    solved,
+                    active,
+                    transferred
+                }
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: ngoStats
+        });
+    } catch (error) {
+        console.error(`Error fetching NGO stats: ${error.message}`);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

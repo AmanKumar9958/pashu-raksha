@@ -102,7 +102,7 @@ export default function NGOHome() {
             <Text style={styles.ngoName}>{profile?.name || user?.fullName} 🏠</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notificationBtn}>
+        <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/(ngo)/notifications')}>
           <Ionicons name="notifications" size={24} color="#1A1C1E" />
           <View style={styles.notifDot} />
         </TouchableOpacity>
@@ -210,6 +210,7 @@ const styles = StyleSheet.create({
   notificationBtn: { padding: 10, backgroundColor: '#F9FAFB', borderRadius: 20 },
   notifDot: { position: 'absolute', top: 12, right: 12, width: 8, height: 8, backgroundColor: '#EF4444', borderRadius: 4, borderWidth: 2, borderColor: '#FFF' },
   nearbyCard: { backgroundColor: '#fff', borderRadius: 32, padding: 25, marginBottom: 25 },
+  nearbyInfo: { marginBottom: 20 },
   iconRow: { flexDirection: 'row', alignItems: 'center' },
   nearbyTitle: { fontSize: 24, fontWeight: 'bold', color: '#1A1C1E' },
   nearbySub: { fontSize: 14, color: '#9CA3AF', marginTop: 8, marginBottom: 20 },

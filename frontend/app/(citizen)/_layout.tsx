@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function NgoLayout() {
+export default function CitizenLayout() {
 	const insets = useSafeAreaInsets();
 
 	return (
@@ -39,14 +39,13 @@ export default function NgoLayout() {
 			}}
 		/>
 
-		{/* 2. Map/Cases Tab (Dog House Icon as requested) */}
+		{/* 2. My Reports Tab */}
 		<Tabs.Screen
 			name="cases"
 			options={{
-			title: 'Map',
+			title: 'My Reports',
 			tabBarIcon: ({ color, size }) => (
-				// Shield ki jagah Dog House (paw) ya business icon use kar sakte hain
-				<Ionicons name="paw" size={size} color={color} />
+				<Ionicons name="document-text" size={size} color={color} />
 			),
 			}}
 		/>

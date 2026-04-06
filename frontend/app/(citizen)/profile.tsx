@@ -83,15 +83,15 @@ export default function CitizenProfileScreen() {
         {/* 3. Real-time Impact Grid */}
         <View style={styles.gridContainer}>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>12</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.solved ?? 0}</Text>
             <Text style={styles.gridLabel}>Cases Solved</Text>
           </View>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>28</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.filed ?? 0}</Text>
             <Text style={styles.gridLabel}>Reports Filed</Text>
           </View>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>3</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.saved ?? 0}</Text>
             <Text style={styles.gridLabel}>Animals Saved</Text>
           </View>
         </View>

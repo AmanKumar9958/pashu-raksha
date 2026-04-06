@@ -18,6 +18,18 @@ export type BackendUserProfile = {
     availableUnits?: number;
     address?: string;
   };
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
+  stats?: {
+    solved: number;
+    active: number;
+    filed: number;
+    transferred: number;
+    saved: number;
+    totalImpact?: number;
+  };
 };
 
 export function useBackendUserProfile() {

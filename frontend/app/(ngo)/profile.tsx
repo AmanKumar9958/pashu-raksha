@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile';
 import CustomModal from '@/components/CustomModal';
@@ -8,6 +9,7 @@ import ScreenTransition from '../../components/ScreenTransition';
 
 export default function NGOProfileScreen() {
   const { user } = useUser();
+  const router = useRouter();
   const { signOut } = useAuth();
   const { profile, loading } = useBackendUserProfile();
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -75,15 +77,15 @@ export default function NGOProfileScreen() {
         {/* 3. Real-time Count Grid */}
         <View style={styles.gridContainer}>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>156</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.solved ?? 0}</Text>
             <Text style={styles.gridLabel}>Cases Solved</Text>
           </View>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>12</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.active ?? 0}</Text>
             <Text style={styles.gridLabel}>Active Rescues</Text>
           </View>
           <View style={styles.gridItem}>
-            <Text style={styles.gridNumber}>08</Text>
+            <Text style={styles.gridNumber}>{profile?.stats?.transferred ?? 0}</Text>
             <Text style={styles.gridLabel}>Transferred</Text>
           </View>
         </View>
@@ -100,7 +102,7 @@ export default function NGOProfileScreen() {
             <Ionicons name="chevron-forward" size={18} color="#CCC" />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/(ngo)/notifications')}>
             <View style={[styles.iconBox, { backgroundColor: '#F3E8FF' }]}>
               <Ionicons name="notifications-outline" size={20} color="#A855F7" />
             </View>

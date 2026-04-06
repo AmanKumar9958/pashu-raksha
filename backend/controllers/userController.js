@@ -1,4 +1,7 @@
 import User from "../models/User.js";
+import Case from "../models/Case.js";
+import Notification from "../models/Notification.js";
+
 
 // 1. Sync User/NGO (Create or Update)
 export const syncUser = async (req, res) => {
@@ -65,9 +68,34 @@ export const getUserProfile = async (req, res) => {
             });
         }
 
+        // --- Calculate Real-time Stats ---
+        let stats = {
+            solved: 0,
+            active: 0,
+            filed: 0,
+            transferred: 0,
+            saved: 0
+        };
+
+        if (user.role === 'NGO') {
+            stats.solved = await Case.countDocuments({ assignedNGO: user._id, status: 'RESOLVED' });
+            stats.active = await Case.countDocuments({ assignedNGO: user._id, status: 'IN PROGRESS' });
+            stats.transferred = await Notification.countDocuments({ sender: user._id, type: 'TRANSFER_REQUEST', status: 'ACCEPTED' });
+            stats.totalImpact = stats.solved; // Animals saved essentially
+        } else {
+            // Citizen stats
+            stats.filed = await Case.countDocuments({ reporterID: user._id });
+            stats.solved = await Case.countDocuments({ reporterID: user._id, status: 'RESOLVED' });
+            stats.active = await Case.countDocuments({ reporterID: user._id, status: 'IN PROGRESS' });
+            stats.saved = stats.solved; 
+        }
+
         res.status(200).json({
             success: true,
-            data: user
+            data: {
+                ...user.toObject(),
+                stats
+            }
         });
     } catch (error) {
         console.error(`Error fetching profile: ${error.message}`);

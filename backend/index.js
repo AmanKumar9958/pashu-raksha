@@ -13,6 +13,7 @@ import connectDB from './config/db.js';
 import caseRoutes from './routes/caseRoutes.js';
 import ngoRoutes from './routes/ngoRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 // Connect to MongoDB
 connectDB();
@@ -33,6 +34,7 @@ app.get('/', (req, res) => {
 app.use('/api/cases', caseRoutes);  // case reporting routes
 app.use('/api/ngos', ngoRoutes);    // get nearby NGOs
 app.use('/api/users', userRoutes);  // user registration routes
+app.use('/api/notifications', notificationRoutes); // Transfer tracking
 
 const PORT = process.env.PORT || 5000;
 
