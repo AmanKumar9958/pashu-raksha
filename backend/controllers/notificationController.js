@@ -32,13 +32,18 @@ export const createTransferRequest = async (req, res) => {
 // Get notifications for logged in user (both incoming and outgoing depending on query, default incoming)
 export const getNotifications = async (req, res) => {
     try {
-        const notifications = await Notification.find({ receiver: req.user._id })
+        const clerkId = req.auth?.userId;
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+        const notifications = await Notification.find({ receiver: user._id })
             .populate('sender', 'name email phone location')
             .populate('caseId', 'description animalType image locationText')
             .sort({ createdAt: -1 });
             
         res.status(200).json({ success: true, data: notifications });
     } catch (error) {
+        console.error('getNotifications error:', error);
         res.status(500).json({ success: false, message: 'Error fetching notifications' });
     }
 };
@@ -46,12 +51,16 @@ export const getNotifications = async (req, res) => {
 // Respond to transfer request
 export const respondTransfer = async (req, res) => {
     try {
+        const clerkId = req.auth?.userId;
+        const user = await User.findOne({ clerkId });
+        if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
         const { id } = req.params;
         const { status, message } = req.body; // 'ACCEPTED' or 'DECLINED'
         const notification = await Notification.findById(id).populate('sender');
 
         if (!notification) return res.status(404).json({ success: false, message: 'Not found' });
-        if (notification.receiver.toString() !== req.user._id.toString()) return res.status(403).json({ success: false, message: 'Unauthorized' });
+        if (notification.receiver.toString() !== user._id.toString()) return res.status(403).json({ success: false, message: 'Unauthorized' });
 
         notification.status = status;
         if (message) notification.message = message;

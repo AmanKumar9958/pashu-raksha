@@ -51,7 +51,6 @@ export default function NgoLayout() {
 			}}
 		/>
 
-		{/* 3. Profile Tab */}
 		<Tabs.Screen
 			name="profile"
 			options={{
@@ -59,6 +58,14 @@ export default function NgoLayout() {
 			tabBarIcon: ({ color, size }) => (
 				<Ionicons name="person" size={size} color={color} />
 			),
+			}}
+		/>
+
+		{/* 4. Hide Notifications from Tab Bar */}
+		<Tabs.Screen
+			name="notifications"
+			options={{
+				href: null,
 			}}
 		/>
 		</Tabs>
