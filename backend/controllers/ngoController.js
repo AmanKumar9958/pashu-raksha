@@ -89,9 +89,10 @@ export const getAllNGOsWithStats = async (req, res) => {
 export const updateNgoDetails = async (req, res) => {
     try {
         const clerkId = req.auth.userId;
-        const { suitableFor, beds, animalCapacity, totalVolunteers, ambulances, medicalFacilities } = req.body;
+        const { name, suitableFor, beds, animalCapacity, totalVolunteers, ambulances, medicalFacilities } = req.body;
 
         const updateFields = {};
+        if (name !== undefined && name.trim()) updateFields['name'] = name.trim();
         if (suitableFor !== undefined) updateFields['ngoDetails.suitableFor'] = suitableFor;
         if (beds !== undefined) updateFields['ngoDetails.beds'] = Number(beds);
         if (animalCapacity !== undefined) updateFields['ngoDetails.animalCapacity'] = Number(animalCapacity);
