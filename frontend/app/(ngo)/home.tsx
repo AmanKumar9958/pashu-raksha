@@ -11,22 +11,22 @@ import { Alert } from 'react-native';
 
 const getDistanceFromLatLonInKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const R = 6371; // Radius of the earth in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);  
-  const dLon = (lon2 - lon1) * (Math.PI / 180); 
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2); 
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return (R * c).toFixed(1);
 };
 
 export default function NGOHome() {
   const router = useRouter();
-  const { user } = useUser(); 
+  const { user } = useUser();
   const { getToken } = useAuth();
-  const { profile, loading, refetch } = useBackendUserProfile(); 
-  
+  const { profile, loading, refetch } = useBackendUserProfile();
+
   const [urgentCases, setUrgentCases] = useState<any[]>([]);
   const [selectedCase, setSelectedCase] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
@@ -61,17 +61,17 @@ export default function NGOHome() {
         headers: { Authorization: `Bearer ${token}` }
       });
       Alert.alert('Success', 'Case has been pushed to your Ongoing flow!', [
-         { text: 'View Ongoing', onPress: () => router.push('/(ngo)/cases') },
-         { text: 'OK' }
+        { text: 'View Ongoing', onPress: () => router.push('/(ngo)/cases') },
+        { text: 'OK' }
       ]);
       fetchUrgentCases();
       refetch(); // Update global DB stats
     } catch (err: any) {
       if (err.response?.status === 409) {
-          Alert.alert('Too slow', 'Another NGO already accepted this case.');
-          fetchUrgentCases();
+        Alert.alert('Too slow', 'Another NGO already accepted this case.');
+        fetchUrgentCases();
       } else {
-          Alert.alert('Error', 'Unable to accept this case at the moment.');
+        Alert.alert('Error', 'Unable to accept this case at the moment.');
       }
     }
   };
@@ -90,120 +90,120 @@ export default function NGOHome() {
   return (
     <ScreenTransition>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 1. Dynamic Header (Logo from Email) */}
-      <View style={styles.header}>
-        <View style={styles.ngoInfo}>
-          {/* Clerk se user ka profile picture (email logo) fetch kiya */}
-          <Image 
-            source={{ uri: user?.imageUrl }} 
-            style={styles.logo} 
-          />
-          <View style={{ marginLeft: 12 }}>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            {/* Real-time Name from DB */}
-            <Text style={styles.ngoName}>{profile?.name || user?.fullName} 🏠</Text>
+        {/* 1. Dynamic Header (Logo from Email) */}
+        <View style={styles.header}>
+          <View style={styles.ngoInfo}>
+            {/* Clerk se user ka profile picture (email logo) fetch kiya */}
+            <Image
+              source={{ uri: user?.imageUrl }}
+              style={styles.logo}
+            />
+            <View style={{ marginLeft: 12 }}>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              {/* Real-time Name from DB */}
+              <Text style={styles.ngoName}>{profile?.name || user?.fullName} 🏠</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/(ngo)/notifications')}>
+            <Ionicons name="notifications" size={24} color="#1A1C1E" />
+            <View style={styles.notifDot} />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2. Main Action Card with Dog House Icon */}
+        <View style={styles.nearbyCard}>
+          <View style={styles.nearbyInfo}>
+            <View style={styles.iconRow}>
+              <Text style={styles.nearbyTitle}>Nearby Cases</Text>
+            </View>
+            <Text style={styles.nearbySub}>Check for distress reports within your rescue zone.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.checkBtn}
+            onPress={() => router.push('/(ngo)/cases')}
+          >
+            <Text style={styles.checkBtnText}>CHECK NOW</Text>
+            <Ionicons name="search" size={18} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 3. Real-time Performance Stats from DB */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            {/* DB se available units ya active cases fetch karega */}
+            <Text style={styles.statValue}>{profile?.ngoDetails?.availableUnits ?? 0}</Text>
+            <Text style={styles.statLabel}>Available Units</Text>
+          </View>
+          <View style={[styles.statItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#F3F4F6' }]}>
+            <Text style={styles.statValue}>156</Text>
+            <Text style={styles.statLabel}>Resolved</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{profile?.ngoDetails?.isVerified ? 'YES' : 'PENDING'}</Text>
+            <Text style={styles.statLabel}>Verification</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.notificationBtn} onPress={() => router.push('/(ngo)/notifications')}>
-          <Ionicons name="notifications" size={24} color="#1A1C1E" />
-          <View style={styles.notifDot} />
-        </TouchableOpacity>
-      </View>
 
-      {/* 2. Main Action Card with Dog House Icon */}
-      <View style={styles.nearbyCard}>
-        <View style={styles.nearbyInfo}>
-          <View style={styles.iconRow}>
-            <Text style={styles.nearbyTitle}>Nearby Cases</Text>
-          </View>
-          <Text style={styles.nearbySub}>Check for distress reports within your rescue zone.</Text>
+        {/* 4. Urgent Reports Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Urgent Reports</Text>
+          <TouchableOpacity onPress={() => { refetch(); fetchUrgentCases(); }}>
+            <Ionicons name="refresh" size={20} color="#00F0D1" />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity 
-          style={styles.checkBtn} 
-          onPress={() => router.push('/(ngo)/cases')}
-        >
-          <Text style={styles.checkBtnText}>CHECK NOW</Text>
-          <Ionicons name="search" size={18} color="#000" />
-        </TouchableOpacity>
-      </View>
 
-      {/* 3. Real-time Performance Stats from DB */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          {/* DB se available units ya active cases fetch karega */}
-          <Text style={styles.statValue}>{profile?.ngoDetails?.availableUnits ?? 0}</Text>
-          <Text style={styles.statLabel}>Available Units</Text>
-        </View>
-        <View style={[styles.statItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#F3F4F6' }]}>
-          <Text style={styles.statValue}>156</Text>
-          <Text style={styles.statLabel}>Resolved</Text>
-        </View>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile?.ngoDetails?.isVerified ? 'YES' : 'PENDING'}</Text>
-          <Text style={styles.statLabel}>Verification</Text>
-        </View>
-      </View>
-
-      {/* 4. Urgent Reports Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Urgent Reports</Text>
-        <TouchableOpacity onPress={() => { refetch(); fetchUrgentCases(); }}>
-          <Ionicons name="refresh" size={20} color="#00F0D1" />
-        </TouchableOpacity>
-      </View>
-
-      {urgentCases.length === 0 ? (
-        <View style={{ alignItems: 'center', marginVertical: 30 }}>
+        {urgentCases.length === 0 ? (
+          <View style={{ alignItems: 'center', marginVertical: 30 }}>
             <Ionicons name="shield-checkmark" size={50} color="#E5E7EB" />
             <Text style={{ color: '#9CA3AF', marginTop: 10 }}>No urgent cases nearby. Great!</Text>
-        </View>
-      ) : (
-        urgentCases.map((caseItem) => {
-          let distanceLabel = 'Calculating...';
-          const myCoords = profile?.location?.coordinates;
-          const caseCoords = caseItem.location?.coordinates;
-          
-          if (myCoords && myCoords.length === 2 && caseCoords && caseCoords.length === 2) {
-            // MongoDB uses [lng, lat], Haversine needs (lat1, lon1, lat2, lon2)
-            distanceLabel = getDistanceFromLatLonInKm(myCoords[1], myCoords[0], caseCoords[1], caseCoords[0]) + " km";
-          }
+          </View>
+        ) : (
+          urgentCases.map((caseItem) => {
+            let distanceLabel = 'Calculating...';
+            const myCoords = profile?.location?.coordinates;
+            const caseCoords = caseItem.location?.coordinates;
 
-          return (
-            <TouchableOpacity 
-              key={caseItem._id} 
-              style={styles.urgentCaseCard}
-              onPress={() => {
-                setSelectedCase(caseItem);
-                setModalVisible(true);
-              }}
-            >
-              <Image 
-                source={{ uri: caseItem.image || 'https://images.unsplash.com/photo-1544568100-847a948585b9' }} 
-                style={styles.caseImg} 
-              />
-              <View style={styles.caseContent}>
-                <View style={styles.caseHeader}>
-                  <Text style={styles.caseTitle}>{caseItem.category || 'Injured Stray'}</Text>
-                  <View style={styles.distanceTag}>
-                    <Text style={styles.distanceText}>{distanceLabel}</Text>
+            if (myCoords && myCoords.length === 2 && caseCoords && caseCoords.length === 2) {
+              // MongoDB uses [lng, lat], Haversine needs (lat1, lon1, lat2, lon2)
+              distanceLabel = getDistanceFromLatLonInKm(myCoords[1], myCoords[0], caseCoords[1], caseCoords[0]) + " km";
+            }
+
+            return (
+              <TouchableOpacity
+                key={caseItem._id}
+                style={styles.urgentCaseCard}
+                onPress={() => {
+                  setSelectedCase(caseItem);
+                  setModalVisible(true);
+                }}
+              >
+                <Image
+                  source={{ uri: caseItem.image || 'https://images.unsplash.com/photo-1544568100-847a948585b9' }}
+                  style={styles.caseImg}
+                />
+                <View style={styles.caseContent}>
+                  <View style={styles.caseHeader}>
+                    <Text style={styles.caseTitle}>{caseItem.category || 'Injured Stray'}</Text>
+                    <View style={styles.distanceTag}>
+                      <Text style={styles.distanceText}>{distanceLabel}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.caseLoc} numberOfLines={1}>
+                    <Ionicons name="pin" size={12} /> {caseItem.locationText || caseItem.animalType || 'Location unknown'}
+                  </Text>
+                  <View style={styles.caseFooter}>
+                    <Text style={styles.timeText}>Awaiting Action</Text>
+                    <TouchableOpacity style={styles.viewBtn} onPress={() => handleRescue(caseItem._id)}>
+                      <Text style={styles.viewBtnText}>Rescue</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <Text style={styles.caseLoc} numberOfLines={1}>
-                   <Ionicons name="pin" size={12} /> {caseItem.locationText || caseItem.animalType || 'Location unknown'}
-                </Text>
-                <View style={styles.caseFooter}>
-                  <Text style={styles.timeText}>Awaiting Action</Text>
-                  <TouchableOpacity style={styles.viewBtn} onPress={() => handleRescue(caseItem._id)}>
-                    <Text style={styles.viewBtnText}>Rescue</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })
-      )}
+              </TouchableOpacity>
+            );
+          })
+        )}
 
-      <Text style={styles.footerNote}>Fetching real-time data from Pashu Raksha DB.</Text>
+        <Text style={styles.footerNote}>Fetching real-time data from Pashu Raksha DB.</Text>
       </ScrollView>
 
       {/* Case Details Modal */}
@@ -213,29 +213,29 @@ export default function NGOHome() {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <Pressable 
-          style={styles.modalOverlay} 
+        <Pressable
+          style={styles.modalOverlay}
           onPress={() => setModalVisible(false)}
         >
-          <Pressable 
+          <Pressable
             style={styles.modalBody}
             onPress={(e) => e.stopPropagation()} // Prevent closing when clicking inside
           >
             <View style={styles.modalHandle} />
-            
+
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Image 
-                source={{ uri: selectedCase?.image }} 
-                style={styles.modalImage} 
+              <Image
+                source={{ uri: selectedCase?.image }}
+                style={styles.modalImage}
               />
-              
+
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
                   <View>
                     <Text style={styles.modalTitle}>{selectedCase?.animalType || 'Stray Animal'}</Text>
                     <Text style={styles.modalSubtitle}>{selectedCase?.category} Case</Text>
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.directionCircle}
                     onPress={() => {
                       const lat = selectedCase?.location?.coordinates[1];
@@ -259,14 +259,14 @@ export default function NGOHome() {
                       </Text>
                     </View>
                   </View>
-                  
+
                   <View style={styles.detailItem}>
                     <Ionicons name="person-outline" size={18} color="#00F0D1" />
                     <View style={{ marginLeft: 10 }}>
                       <Text style={styles.detailLabel}>Reported By</Text>
                       <Text style={styles.detailValue}>
-                      {selectedCase?.reporterID?.name || (typeof selectedCase?.reporterID === 'string' ? 'Loading Name...' : 'Anonymous')}
-                    </Text>
+                        {selectedCase?.reporterID?.name || (typeof selectedCase?.reporterID === 'string' ? 'Loading Name...' : 'Anonymous')}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -285,8 +285,8 @@ export default function NGOHome() {
                 <Text style={styles.modalDescription}>{selectedCase?.description}</Text>
 
                 <View style={{ height: 30 }} />
-                
-                <TouchableOpacity 
+
+                <TouchableOpacity
                   style={styles.modalRescueBtn}
                   onPress={() => {
                     handleRescue(selectedCase?._id);
@@ -296,12 +296,12 @@ export default function NGOHome() {
                   <Text style={styles.modalRescueText}>Accept Rescue</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                {/* <TouchableOpacity 
                   style={styles.closeBtn}
                   onPress={() => setModalVisible(false)}
                 >
                   <Text style={styles.closeBtnText}>Close</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </ScrollView>
           </Pressable>
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   modalBody: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '85%', overflow: 'hidden' },
   modalHandle: { width: 40, height: 5, backgroundColor: '#E5E7EB', borderRadius: 3, alignSelf: 'center', marginVertical: 15 },
   modalImage: { width: '100%', height: 250 },
-  modalContent: { padding: 25 },
+  modalContent: { padding: 25, paddingBottom: 50 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
   modalTitle: { fontSize: 24, fontWeight: 'bold', color: '#1A1C1E' },
   modalSubtitle: { fontSize: 14, color: '#9CA3AF' },

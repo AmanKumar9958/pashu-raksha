@@ -150,6 +150,13 @@ export default function NgoCasesScreen() {
 
 	const renderCompletedItem = (item: any) => (
 		<View key={item._id} style={styles.completedCard}>
+			{item.image ? (
+				<Image source={{ uri: item.image }} style={styles.completedImage} />
+			) : (
+				<View style={[styles.completedImage, styles.completedImagePlaceholder]}>
+					<Ionicons name="paw" size={20} color="#D1D5DB" />
+				</View>
+			)}
 			<View style={styles.completedInfo}>
 				<View style={styles.completedHeader}>
 					<Text style={styles.completedTitle}>{item.animalType}</Text>
@@ -364,7 +371,9 @@ const styles = StyleSheet.create({
 	historyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
 	historyTitle: { fontSize: 15, fontWeight: '600', color: '#1A1C1E' },
 	historyBody: { marginTop: 10 },
-	completedCard: { backgroundColor: '#F9FAFB', borderRadius: 15, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB' },
+	completedCard: { backgroundColor: '#F9FAFB', borderRadius: 15, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 12 },
+	completedImage: { width: 52, height: 52, borderRadius: 12 },
+	completedImagePlaceholder: { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
 	completedInfo: { flex: 1 },
 	completedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 },
 	completedTitle: { fontSize: 14, fontWeight: 'bold', color: '#1A1C1E' },

@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.codewithaman.pashuraksha"
+      "bundleIdentifier": "com.solostackdev.pashuraksha"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +18,7 @@
         "foregroundImage": "./assets/images/icon.png",
         "backgroundImage": "./assets/images/icon.png"
       },
-      "package": "com.codewithaman.pashuraksha",
+      "package": "com.solostackdev.pashuraksha",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
