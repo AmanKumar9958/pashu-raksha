@@ -84,3 +84,34 @@ export const getAllNGOsWithStats = async (req, res) => {
         res.status(500).json({ success: false, message: 'Server Error' });
     }
 };
+
+// Update NGO facility details
+export const updateNgoDetails = async (req, res) => {
+    try {
+        const clerkId = req.auth.userId;
+        const { suitableFor, beds, animalCapacity, totalVolunteers, ambulances, medicalFacilities } = req.body;
+
+        const updateFields = {};
+        if (suitableFor !== undefined) updateFields['ngoDetails.suitableFor'] = suitableFor;
+        if (beds !== undefined) updateFields['ngoDetails.beds'] = Number(beds);
+        if (animalCapacity !== undefined) updateFields['ngoDetails.animalCapacity'] = Number(animalCapacity);
+        if (totalVolunteers !== undefined) updateFields['ngoDetails.totalVolunteers'] = Number(totalVolunteers);
+        if (ambulances !== undefined) updateFields['ngoDetails.ambulances'] = Number(ambulances);
+        if (medicalFacilities !== undefined) updateFields['ngoDetails.medicalFacilities'] = medicalFacilities;
+
+        const user = await User.findOneAndUpdate(
+            { clerkId, role: 'NGO' },
+            { $set: updateFields },
+            { new: true, runValidators: true }
+        );
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'NGO not found' });
+        }
+
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        console.error(`Error updating NGO details: ${error.message}`);
+        res.status(500).json({ success: false, message: 'Server Error' });
+    }
+};

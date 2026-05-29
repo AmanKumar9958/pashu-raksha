@@ -38,7 +38,13 @@ const userSchema = new mongoose.Schema({
         specialization: [String],
         availableUnits: {type: Number, default: 0},
         address: String,
-        createdAt: {type: Date, default: Date.now}
+        createdAt: {type: Date, default: Date.now},
+        suitableFor: {type: [String], default: []},
+        beds: {type: Number, default: 0},
+        animalCapacity: {type: Number, default: 0},
+        totalVolunteers: {type: Number, default: 0},
+        ambulances: {type: Number, default: 0},
+        medicalFacilities: {type: String, default: ''}
     }
 });
 

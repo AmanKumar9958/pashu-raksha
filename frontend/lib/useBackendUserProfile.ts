@@ -17,6 +17,13 @@ export type BackendUserProfile = {
     specialization?: string[];
     availableUnits?: number;
     address?: string;
+    createdAt?: string;
+    suitableFor?: string[];
+    beds?: number;
+    animalCapacity?: number;
+    totalVolunteers?: number;
+    ambulances?: number;
+    medicalFacilities?: string;
   };
   location?: {
     type: string;
