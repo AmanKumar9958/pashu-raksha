@@ -127,24 +127,7 @@ export default function NGOHome() {
           </TouchableOpacity>
         </View>
 
-        {/* 3. Real-time Performance Stats from DB */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            {/* DB se available units ya active cases fetch karega */}
-            <Text style={styles.statValue}>{profile?.ngoDetails?.availableUnits ?? 0}</Text>
-            <Text style={styles.statLabel}>Available Units</Text>
-          </View>
-          <View style={[styles.statItem, { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#F3F4F6' }]}>
-            <Text style={styles.statValue}>156</Text>
-            <Text style={styles.statLabel}>Resolved</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{profile?.ngoDetails?.isVerified ? 'YES' : 'PENDING'}</Text>
-            <Text style={styles.statLabel}>Verification</Text>
-          </View>
-        </View>
-
-        {/* 4. Urgent Reports Section */}
+        {/* Urgent Reports Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Urgent Reports</Text>
           <TouchableOpacity onPress={() => { refetch(); fetchUrgentCases(); }}>
@@ -164,7 +147,6 @@ export default function NGOHome() {
             const caseCoords = caseItem.location?.coordinates;
 
             if (myCoords && myCoords.length === 2 && caseCoords && caseCoords.length === 2) {
-              // MongoDB uses [lng, lat], Haversine needs (lat1, lon1, lat2, lon2)
               distanceLabel = getDistanceFromLatLonInKm(myCoords[1], myCoords[0], caseCoords[1], caseCoords[0]) + " km";
             }
 
@@ -219,7 +201,7 @@ export default function NGOHome() {
         >
           <Pressable
             style={styles.modalBody}
-            onPress={(e) => e.stopPropagation()} // Prevent closing when clicking inside
+            onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.modalHandle} />
 
@@ -295,13 +277,6 @@ export default function NGOHome() {
                 >
                   <Text style={styles.modalRescueText}>Accept Rescue</Text>
                 </TouchableOpacity>
-
-                {/* <TouchableOpacity 
-                  style={styles.closeBtn}
-                  onPress={() => setModalVisible(false)}
-                >
-                  <Text style={styles.closeBtnText}>Close</Text>
-                </TouchableOpacity> */}
               </View>
             </ScrollView>
           </Pressable>

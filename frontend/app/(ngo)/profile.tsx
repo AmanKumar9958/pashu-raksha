@@ -19,6 +19,8 @@ export default function NGOProfileScreen() {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [nameEditing, setNameEditing] = useState(false);
+  const [editName, setEditName] = useState('');
 
   // Edit form state
   const [suitableFor, setSuitableFor] = useState<string[]>([]);
@@ -70,6 +72,20 @@ export default function NGOProfileScreen() {
     }
   };
 
+  const handleNameSave = async () => {
+    if (!editName.trim()) return;
+    try {
+      const token = await getToken();
+      await axios.put(`${API_URL}/ngos/details`, { name: editName.trim() }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNameEditing(false);
+      refetch();
+    } catch (err) {
+      Alert.alert('Error', 'Failed to update name.');
+    }
+  };
+
   const ngoDetails = profile?.ngoDetails;
   const stats = profile?.stats;
   const establishedDate = ngoDetails?.createdAt
@@ -108,7 +124,39 @@ export default function NGOProfileScreen() {
               <Image source={{ uri: user?.imageUrl }} style={styles.profileImage} />
               <View style={styles.activePulse} />
             </View>
-            <Text style={styles.ngoName}>{profile?.name || user?.fullName}</Text>
+
+            {/* Editable Name */}
+            {nameEditing ? (
+              <View style={styles.nameEditRow}>
+                <TextInput
+                  style={styles.nameInput}
+                  value={editName}
+                  onChangeText={setEditName}
+                  autoFocus
+                  selectTextOnFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleNameSave}
+                />
+                <TouchableOpacity style={styles.nameCheckBtn} onPress={handleNameSave}>
+                  <Ionicons name="checkmark-circle" size={28} color="#00F0D1" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setNameEditing(false)}>
+                  <Ionicons name="close-circle" size={28} color="#E5E7EB" />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.nameRow}
+                onPress={() => {
+                  setEditName(profile?.name || user?.fullName || '');
+                  setNameEditing(true);
+                }}
+              >
+                <Text style={styles.ngoName}>{profile?.name || user?.fullName}</Text>
+                <Ionicons name="create-outline" size={18} color="#9CA3AF" style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+            )}
+
             <View style={styles.badgeRow}>
               <Ionicons name="shield-checkmark" size={14} color="#00F0D1" />
               <Text style={styles.ngoTitle}>
@@ -116,12 +164,18 @@ export default function NGOProfileScreen() {
               </Text>
             </View>
 
-            {/* Location & Established Date */}
+            {/* Location, Phone & Established Date */}
             <View style={styles.metaRow}>
               {ngoDetails?.address ? (
                 <View style={styles.metaItem}>
                   <Ionicons name="location-outline" size={14} color="#9CA3AF" />
                   <Text style={styles.metaText}>{ngoDetails.address}</Text>
+                </View>
+              ) : null}
+              {profile?.phone ? (
+                <View style={styles.metaItem}>
+                  <Ionicons name="call-outline" size={14} color="#9CA3AF" />
+                  <Text style={styles.metaText}>{profile.phone}</Text>
                 </View>
               ) : null}
               {establishedDate ? (
@@ -379,7 +433,11 @@ const styles = StyleSheet.create({
   imageWrapper: { position: 'relative' },
   profileImage: { width: 120, height: 120, borderRadius: 60, borderWidth: 4, borderColor: '#F3F4F6' },
   activePulse: { position: 'absolute', bottom: 10, right: 10, width: 20, height: 20, borderRadius: 10, backgroundColor: '#00F0D1', borderWidth: 4, borderColor: '#FFF' },
-  ngoName: { fontSize: 26, fontWeight: 'bold', color: '#1A1C1E', marginTop: 15 },
+  ngoName: { fontSize: 26, fontWeight: 'bold', color: '#1A1C1E' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', marginTop: 15 },
+  nameEditRow: { flexDirection: 'row', alignItems: 'center', marginTop: 15, gap: 8 },
+  nameInput: { fontSize: 22, fontWeight: 'bold', color: '#1A1C1E', borderBottomWidth: 2, borderBottomColor: '#00F0D1', paddingVertical: 4, paddingHorizontal: 8, minWidth: 150, textAlign: 'center' },
+  nameCheckBtn: { marginLeft: 2 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
   ngoTitle: { fontSize: 13, color: '#9CA3AF', fontWeight: '600', letterSpacing: 0.5 },
   metaRow: { alignItems: 'center', marginTop: 12, gap: 6 },

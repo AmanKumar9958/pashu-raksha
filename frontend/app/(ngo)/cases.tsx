@@ -20,7 +20,7 @@ export default function NgoCasesScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [transferModalVisible, setTransferModalVisible] = useState(false);
 	const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-	const [historyExpanded, setHistoryExpanded] = useState(false);
+	const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
 	
 	// Detail Modal State
 	const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -59,9 +59,9 @@ export default function NgoCasesScreen() {
 		fetchData();
 	};
 
-	const toggleHistory = () => {
+	const switchTab = (tab: 'active' | 'completed') => {
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-		setHistoryExpanded(!historyExpanded);
+		setActiveTab(tab);
 	};
 
 	const handleResolve = async (id: string) => {
@@ -197,42 +197,53 @@ export default function NgoCasesScreen() {
 					</TouchableOpacity>
 				</View>
 
+				{/* Tab Bar */}
+				<View style={styles.tabBar}>
+					<TouchableOpacity
+						style={[styles.tab, activeTab === 'active' && styles.tabActive]}
+						onPress={() => switchTab('active')}
+					>
+						<Ionicons name="pulse-outline" size={16} color={activeTab === 'active' ? '#1A1C1E' : '#9CA3AF'} />
+						<Text style={[styles.tabText, activeTab === 'active' && styles.tabTextActive]}>
+							Active ({ongoingCases.length})
+						</Text>
+					</TouchableOpacity>
+					<TouchableOpacity
+						style={[styles.tab, activeTab === 'completed' && styles.tabActive]}
+						onPress={() => switchTab('completed')}
+					>
+						<Ionicons name="checkmark-done-outline" size={16} color={activeTab === 'completed' ? '#1A1C1E' : '#9CA3AF'} />
+						<Text style={[styles.tabText, activeTab === 'completed' && styles.tabTextActive]}>
+							Completed ({completedCases.length})
+						</Text>
+					</TouchableOpacity>
+				</View>
+
+				{/* Tab Content */}
 				<ScrollView 
 					style={{ flex: 1 }} 
 					contentContainerStyle={styles.scrollContent}
 					refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#00F0D1']} />}
 				>
-					{/* Ongoing Section */}
-					<Text style={styles.sectionHeader}>Active Rescues ({ongoingCases.length})</Text>
-					{ongoingCases.length === 0 ? (
-						<View style={styles.emptyContainer}>
-							<Ionicons name="paw-outline" size={60} color="#E5E7EB" />
-							<Text style={styles.emptyText}>No active cases assigned.</Text>
-						</View>
+					{activeTab === 'active' ? (
+						ongoingCases.length === 0 ? (
+							<View style={styles.emptyContainer}>
+								<Ionicons name="paw-outline" size={60} color="#E5E7EB" />
+								<Text style={styles.emptyText}>No active cases assigned.</Text>
+							</View>
+						) : (
+							ongoingCases.map((item) => renderOngoingItem({ item }))
+						)
 					) : (
-						ongoingCases.map((item) => renderOngoingItem({ item }))
+						completedCases.length === 0 ? (
+							<View style={styles.emptyContainer}>
+								<Ionicons name="archive-outline" size={60} color="#E5E7EB" />
+								<Text style={styles.emptyText}>No completed cases yet.</Text>
+							</View>
+						) : (
+							completedCases.map(renderCompletedItem)
+						)
 					)}
-
-					{/* History Accordion */}
-					<View style={styles.historyContainer}>
-						<TouchableOpacity style={styles.historyHeader} onPress={toggleHistory}>
-							<View style={styles.historyTitleRow}>
-								<Ionicons name="archive-outline" size={20} color="#1A1C1E" />
-								<Text style={styles.historyTitle}>Completed History ({completedCases.length})</Text>
-							</View>
-							<Ionicons name={historyExpanded ? "chevron-up" : "chevron-down"} size={20} color="#9CA3AF" />
-						</TouchableOpacity>
-
-						{historyExpanded && (
-							<View style={styles.historyBody}>
-								{completedCases.length === 0 ? (
-									<Text style={styles.noHistoryText}>No completed cases yet.</Text>
-								) : (
-									completedCases.map(renderCompletedItem)
-								)}
-							</View>
-						)}
-					</View>
 				</ScrollView>
 
 				{/* Case Details Modal */}
@@ -347,8 +358,7 @@ const styles = StyleSheet.create({
 	center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 	header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 60, backgroundColor: '#FFF' },
 	title: { fontSize: 22, fontWeight: 'bold', color: '#1A1C1E' },
-	scrollContent: { padding: 15 },
-	sectionHeader: { fontSize: 16, fontWeight: '700', color: '#4B5563', marginBottom: 15, marginTop: 10 },
+	scrollContent: { padding: 15, paddingBottom: 40 },
 	caseCard: { backgroundColor: '#FFF', borderRadius: 20, marginBottom: 15, flexDirection: 'row', padding: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10 },
 	caseImage: { width: 90, height: 90, borderRadius: 15 },
 	caseDetails: { flex: 1, marginLeft: 15, justifyContent: 'space-between' },
@@ -365,12 +375,12 @@ const styles = StyleSheet.create({
 	transferBtn: { backgroundColor: '#F3F4F6' },
 	btnText: { fontSize: 12, fontWeight: 'bold', color: '#1A1C1E' },
 	
-	// History Styles
-	historyContainer: { marginTop: 20, marginBottom: 40 },
-	historyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', padding: 20, borderRadius: 20, elevation: 1 },
-	historyTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-	historyTitle: { fontSize: 15, fontWeight: '600', color: '#1A1C1E' },
-	historyBody: { marginTop: 10 },
+	// Tab Bar Styles
+	tabBar: { flexDirection: 'row', marginHorizontal: 15, marginTop: 10, backgroundColor: '#F3F4F6', borderRadius: 16, padding: 4 },
+	tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, borderRadius: 13 },
+	tabActive: { backgroundColor: '#FFF', elevation: 2, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 6 },
+	tabText: { fontSize: 13, fontWeight: '600', color: '#9CA3AF' },
+	tabTextActive: { color: '#1A1C1E' },
 	completedCard: { backgroundColor: '#F9FAFB', borderRadius: 15, padding: 15, marginBottom: 10, borderWidth: 1, borderColor: '#E5E7EB', flexDirection: 'row', alignItems: 'center', gap: 12 },
 	completedImage: { width: 52, height: 52, borderRadius: 12 },
 	completedImagePlaceholder: { backgroundColor: '#F3F4F6', justifyContent: 'center', alignItems: 'center' },
