@@ -19,7 +19,7 @@ export const getNearByCases = async (req, res) => {
 
         const hasGeo = lat !== undefined && lng !== undefined && distance !== undefined;
         if (!hasGeo) {
-            const cases = await Case.find().populate('reporterID', 'name').sort({ createdAt: -1 });
+            const cases = await Case.find().populate('reporterID', 'name phone').sort({ createdAt: -1 });
             return res.status(200).json({
                 success: true,
                 length: cases.length,
@@ -47,7 +47,7 @@ export const getNearByCases = async (req, res) => {
                     $maxDistance: distanceKm * 1000
                 }
             }
-        }).populate('reporterID', 'name').sort({ createdAt: -1 });
+        }).populate('reporterID', 'name phone').sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
@@ -148,7 +148,7 @@ export const createCase = async (req, res) => {
 // Get all cases for NGOs
 export const getAllCases = async (req, res) => {
     try{
-        const cases = await Case.find().populate('reporterID', 'name').sort({ createdAt: -1});
+        const cases = await Case.find().populate('reporterID', 'name phone').sort({ createdAt: -1});
         res.status(200).json({
             success: true,
             length: cases.length,
@@ -280,7 +280,7 @@ export const getNgoCases = async (req, res) => {
             query.status = { $in: ['PENDING', 'IN PROGRESS'] };
         }
 
-        const cases = await Case.find(query).populate('reporterID', 'name').sort({ createdAt: -1 });
+        const cases = await Case.find(query).populate('reporterID', 'name phone').sort({ createdAt: -1 });
         return res.status(200).json({ success: true, length: cases.length, data: cases });
     } catch (error) {
         console.error(`Error fetching NGO cases: ${error.message}`);
@@ -349,7 +349,7 @@ export const getSuccessStories = async (req, res) => {
 
         const [stories, savedThisMonth] = await Promise.all([
             Case.find({ status: 'RESOLVED' })
-                .populate('reporterID', 'name')
+                .populate('reporterID', 'name phone')
                 .sort({ updatedAt: -1, createdAt: -1 })
                 .limit(limit),
             Case.countDocuments({
@@ -395,7 +395,7 @@ export const getUserCases = async (req, res) => {
             });
         }
 
-        const cases = await Case.find({ reporterID: user._id }).populate('reporterID', 'name').sort({ createdAt: -1 });
+        const cases = await Case.find({ reporterID: user._id }).populate('reporterID', 'name phone').sort({ createdAt: -1 });
         return res.status(200).json({
             success: true,
             length: cases.length,

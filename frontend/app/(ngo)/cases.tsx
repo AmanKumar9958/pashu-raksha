@@ -312,6 +312,24 @@ export default function NgoCasesScreen() {
 										</View>
 									</View>
 
+									{selectedCase?.reporterID?.phone && (
+										<TouchableOpacity
+											style={styles.contactRow}
+											onPress={() => Linking.openURL(`tel:${selectedCase.reporterID.phone}`)}
+										>
+											<View style={styles.contactInfo}>
+												<Ionicons name="call-outline" size={18} color="#00F0D1" />
+												<View style={{ marginLeft: 10 }}>
+													<Text style={styles.detailLabel}>Reporter Contact</Text>
+													<Text style={styles.detailValue}>{selectedCase.reporterID.phone}</Text>
+												</View>
+											</View>
+											<View style={styles.callBtnSmall}>
+												<Ionicons name="call" size={16} color="#FFF" />
+											</View>
+										</TouchableOpacity>
+									)}
+
 									<View style={styles.divider} />
 									<Text style={styles.descriptionTitle}>Description</Text>
 									<Text style={styles.modalDescription}>{selectedCase?.description}</Text>
@@ -416,6 +434,9 @@ const styles = StyleSheet.create({
 	modalDescription: { fontSize: 15, color: '#4B5563', lineHeight: 22 },
 	closeBtn: { padding: 18, alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 15, marginTop: 20 },
 	closeBtnText: { color: '#6B7280', fontWeight: '600' },
+	contactRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F0FDF9', padding: 14, borderRadius: 14, marginTop: 12, borderWidth: 1, borderColor: '#D1FAE5' },
+	contactInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+	callBtnSmall: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#10B981', justifyContent: 'center', alignItems: 'center' },
 	
 	modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '70%', padding: 20 },
 	modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },

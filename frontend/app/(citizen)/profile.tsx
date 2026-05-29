@@ -43,7 +43,7 @@ export default function CitizenProfileScreen() {
           <TouchableOpacity style={styles.settingsBtn}>
             <Ionicons name="settings-outline" size={24} color="#1A1C1E" />
           </TouchableOpacity> */}
-          
+
           <View style={styles.profileInfo}>
             <View style={styles.imageWrapper}>
               <Image source={{ uri: user?.imageUrl }} style={styles.profileImage} />
@@ -57,7 +57,7 @@ export default function CitizenProfileScreen() {
         </View>
 
         {/* 2. Karma Balance Card (As per Reference) */}
-        <View style={styles.karmaCard}>
+        {/* <View style={styles.karmaCard}>
           <View style={styles.karmaHeader}>
             <View>
               <Text style={styles.karmaLabel}>KARMA BALANCE</Text>
@@ -78,7 +78,7 @@ export default function CitizenProfileScreen() {
             <View style={[styles.progressBar, { width: '75%' }]} />
           </View>
           <Text style={styles.progressNote}>50 more points to level up!</Text>
-        </View>
+        </View> */}
 
         {/* 3. Real-time Impact Grid */}
         <View style={styles.gridContainer}>
@@ -99,7 +99,7 @@ export default function CitizenProfileScreen() {
         {/* 4. Account Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>ACCOUNT</Text>
-          
+
           <TouchableOpacity style={styles.actionItem}>
             <View style={[styles.iconBox, { backgroundColor: '#E6F4FE' }]}>
               <Ionicons name="document-text-outline" size={20} color="#3B82F6" />
@@ -126,13 +126,13 @@ export default function CitizenProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={styles.logoutBtn} 
+        <TouchableOpacity
+          style={styles.logoutBtn}
           onPress={() => setLogoutModalVisible(true)}
         >
           <Text style={styles.logoutText}>Log Out</Text>
         </TouchableOpacity>
-        
+
         <Text style={styles.version}>v1.0.0 • Pashu Raksha</Text>
       </ScrollView>
     </ScreenTransition>
