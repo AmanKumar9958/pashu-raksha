@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator, Modal, TextInput, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile';
 import CustomModal from '@/components/CustomModal';
@@ -86,6 +86,13 @@ export default function NGOProfileScreen() {
       Alert.alert('Error', 'Failed to update name.');
     }
   };
+
+  // Auto-refresh profile data when this tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const ngoDetails = profile?.ngoDetails;
   const stats = profile?.stats;

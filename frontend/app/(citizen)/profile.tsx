@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { useBackendUserProfile } from '../../lib/useBackendUserProfile';
 import CustomModal from '@/components/CustomModal';
 import ScreenTransition from '../../components/ScreenTransition';
+import { useFocusEffect } from 'expo-router';
 
 export default function CitizenProfileScreen() {
   const { user } = useUser();
   const { signOut } = useAuth();
-  const { profile, loading } = useBackendUserProfile();
+  const { profile, loading, refetch } = useBackendUserProfile();
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
+  // Auto-refresh profile data when this tab gains focus
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   if (loading) {
     return (
@@ -90,10 +98,10 @@ export default function CitizenProfileScreen() {
             <Text style={styles.gridNumber}>{profile?.stats?.filed ?? 0}</Text>
             <Text style={styles.gridLabel}>Reports Filed</Text>
           </View>
-          <View style={styles.gridItem}>
+          {/* <View style={styles.gridItem}>
             <Text style={styles.gridNumber}>{profile?.stats?.saved ?? 0}</Text>
             <Text style={styles.gridLabel}>Animals Saved</Text>
-          </View>
+          </View> */}
         </View>
 
         {/* 4. Account Actions */}
