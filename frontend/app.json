@@ -19,6 +19,7 @@
         "backgroundImage": "./assets/images/icon.png"
       },
       "package": "com.solostackdev.pashuraksha",
+      "versionCode": 4,
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

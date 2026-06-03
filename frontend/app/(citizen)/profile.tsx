@@ -20,7 +20,7 @@ export default function CitizenProfileScreen() {
     }, [refetch])
   );
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <ScreenTransition>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>

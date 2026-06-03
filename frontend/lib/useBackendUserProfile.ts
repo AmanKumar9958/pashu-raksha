@@ -50,6 +50,8 @@ export function useBackendUserProfile() {
   
   // Isse baar-baar फालतू API calls nahi hongi
   const fetchedForUserIdRef = useRef<string | null>(null);
+  const fetchProfileRef = useRef<() => void>(() => undefined);
+  const inFlightRef = useRef(false);
 
   const fetchProfile = useCallback(async () => {
     // 1. Agar Clerk abhi load hi nahi hua, toh ruko
@@ -70,6 +72,8 @@ export function useBackendUserProfile() {
       return;
     }
 
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
     setError(null);
 
@@ -97,13 +101,23 @@ export function useBackendUserProfile() {
         setError(e.message || 'Error fetching profile');
       }
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [isUserLoaded, isAuthLoaded, isSignedIn, user?.id, getToken]);
 
   useEffect(() => {
+    fetchProfileRef.current = fetchProfile;
+  }, [fetchProfile]);
+
+  useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  const refetch = useCallback(() => {
+    fetchedForUserIdRef.current = null;
+    fetchProfileRef.current();
+  }, []);
 
   return {
     profile,
@@ -111,9 +125,6 @@ export function useBackendUserProfile() {
     loading,
     error,
     isReady: isUserLoaded && isAuthLoaded && !loading,
-    refetch: () => {
-      fetchedForUserIdRef.current = null;
-      fetchProfile();
-    }
+    refetch,
   };
 }

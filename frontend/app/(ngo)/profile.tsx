@@ -100,7 +100,7 @@ export default function NGOProfileScreen() {
     ? new Date(ngoDetails.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })
     : null;
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <ScreenTransition>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
