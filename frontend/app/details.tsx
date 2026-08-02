@@ -14,11 +14,16 @@ export default function DetailsScreen() {
 
   const [role, setRole] = useState<'citizen' | 'NGO'>('citizen');
   const [phone, setPhone] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [address, setAddress] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
   const [ngoCoords, setNgoCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gettingNgoLocation, setGettingNgoLocation] = useState(false);
+  const autoSubmittedRef = useRef(false);
+
+  // Detect reviewer account
+  const isReviewer = user?.primaryEmailAddress?.emailAddress?.toLowerCase() === 'reviewer@pashuraksha.com';
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
@@ -38,6 +43,17 @@ export default function DetailsScreen() {
     modalConfirmRef.current = params.onConfirm ?? (() => setModalVisible(false));
     setModalVisible(true);
   }, []);
+
+  // Set display name from Clerk or use reviewer fallback
+  useEffect(() => {
+    if (!userLoaded) return;
+    if (isReviewer) {
+      setDisplayName('App Reviewer');
+      setPhone('9999999999');
+    } else {
+      setDisplayName(user?.fullName || '');
+    }
+  }, [userLoaded, user?.fullName, isReviewer]);
 
   useEffect(() => {
     const checkExistingProfile = async () => {
@@ -77,6 +93,16 @@ export default function DetailsScreen() {
 
     checkExistingProfile();
   }, [authLoaded, isSignedIn, userLoaded, user?.id]);
+
+  // Auto-submit for reviewer account once profile check is done
+  useEffect(() => {
+    if (!checkingProfile && isReviewer && !autoSubmittedRef.current && phone.length === 10 && displayName) {
+      autoSubmittedRef.current = true;
+      // Small delay to let the UI render first
+      const timer = setTimeout(() => handleSubmit(), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [checkingProfile, isReviewer, phone, displayName]);
 
   const requestNgoLocation = async () => {
     setGettingNgoLocation(true);
@@ -130,7 +156,7 @@ export default function DetailsScreen() {
       const token = await getToken();
       const payload = {
         clerkId: user?.id,
-        name: user?.fullName,
+        name: displayName || user?.fullName,
         email: user?.primaryEmailAddress?.emailAddress,
         phone,
         role,
@@ -218,7 +244,7 @@ export default function DetailsScreen() {
           </TouchableOpacity>
         </View>
 
-        <TextInput style={[styles.input, { color: '#9CA3AF' }]} value={user?.fullName || ''} editable={false} />
+        <TextInput style={[styles.input, { color: '#9CA3AF' }]} value={displayName} editable={false} placeholder="Full Name" placeholderTextColor="#9CA3AF" />
         <TextInput style={[styles.input, { color: '#9CA3AF' }]} value={user?.primaryEmailAddress?.emailAddress || ''} editable={false} />
 
         <TextInput 
@@ -226,6 +252,7 @@ export default function DetailsScreen() {
           placeholder="Phone Number" 
           keyboardType="phone-pad" 
           maxLength={10} 
+          value={phone}
           onChangeText={setPhone} 
           placeholderTextColor="#9CA3AF"
         />
