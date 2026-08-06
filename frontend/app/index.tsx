@@ -1,5 +1,7 @@
 import * as Linking from 'expo-linking';
-import React, { useState, useCallback } from 'react';
+import * as WebBrowser from 'expo-web-browser';
+import * as SecureStore from 'expo-secure-store';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, Image, TextInput,
   TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Dimensions,
@@ -8,57 +10,91 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useOAuth, useSignIn } from '@clerk/clerk-expo';
-import { Link } from 'expo-router';
+import axios from 'axios';
+import { API_URL } from '../constants';
 
 const { height } = Dimensions.get('window');
 
+// Ensure WebBrowser completes auth session on native platforms
+WebBrowser.maybeCompleteAuthSession();
+
+const useWarmUpBrowser = () => {
+  useEffect(() => {
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+};
+
+const CLERK_SECRET_KEY =
+  process.env.EXPO_PUBLIC_CLERK_SECRET_KEY ||
+  'sk_test_4xmZiamtrjSx6gjiQKTlgKlhAyaAqOa0gC4Ikxqh20';
+
 export default function LoginScreen() {
+  useWarmUpBrowser();
+
   const [role, setRole] = useState<'Volunteer' | 'NGO'>('Volunteer');
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
   const { signIn, setActive, isLoaded: isSignInLoaded } = useSignIn();
 
+  const handleRoleSelect = (selectedRole: 'Volunteer' | 'NGO') => {
+    setRole(selectedRole);
+    SecureStore.setItemAsync('user_selected_role', selectedRole).catch(() => {});
+  };
+
   const onGoogleLogin = useCallback(async () => {
+    if (isGoogleLoading || isLoggingIn) return;
+    setIsGoogleLoading(true);
+
     try {
-      // Clerk ko batao ki login ke baad kahan aana hai
+      await SecureStore.setItemAsync('user_selected_role', role);
       const redirectUrl = Linking.createURL('/', { scheme: 'pashu-raksha' });
 
-      const { createdSessionId, setActive } = await startOAuthFlow({
+      const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
         redirectUrl: redirectUrl,
       });
 
-      if (createdSessionId && setActive) {
-        await setActive({ session: createdSessionId });
-        // Note: setActive hone ke baad _layout.tsx ka useEffect 
-        // khud user ko /details par redirect kar dega.
+      if (createdSessionId && setOAuthActive) {
+        await setOAuthActive({ session: createdSessionId });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("OAuth error", err);
+      const errMsg = err?.errors?.[0]?.longMessage || err?.message || "Google sign-in was cancelled or failed.";
+      Alert.alert("Google Sign In", errMsg);
+    } finally {
+      setIsGoogleLoading(false);
     }
-  }, [startOAuthFlow]);
+  }, [startOAuthFlow, role, isGoogleLoading, isLoggingIn]);
 
   const onSignInPress = useCallback(async () => {
-    if (!isSignInLoaded) return;
+    if (!isSignInLoaded) {
+      Alert.alert("Please wait", "Authentication service is initializing. Please try again in a moment.");
+      return;
+    }
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       Alert.alert("Error", "Please enter both email and password.");
       return;
     }
 
     setIsLoggingIn(true);
     try {
-      // Use ticket-based sign-in for reviewer account to bypass 2FA issues
+      await SecureStore.setItemAsync('user_selected_role', role);
       const trimmedEmail = email.trim().toLowerCase();
+
+      // Reviewer account handling to bypass 2FA / OTP challenges
       if (trimmedEmail === 'reviewer@pashuraksha.com' && password === 'AppTest2026') {
-        // Fetch a sign-in token from Clerk Backend API
         const tokenResponse = await fetch('https://api.clerk.com/v1/sign_in_tokens', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${process.env.EXPO_PUBLIC_CLERK_SECRET_KEY}`,
+            'Authorization': `Bearer ${CLERK_SECRET_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ user_id: 'user_3G59MhMkFRFWnIgHsS00l2Q3T4i' }),
@@ -66,8 +102,9 @@ export default function LoginScreen() {
 
         const tokenData = await tokenResponse.json();
 
-        if (!tokenData.token) {
-          Alert.alert("Sign In Failed", "Could not generate sign-in token.");
+        if (!tokenData?.token) {
+          console.error("Sign-in token error:", tokenData);
+          Alert.alert("Sign In Failed", "Could not generate sign-in token. Please try again.");
           return;
         }
 
@@ -76,7 +113,29 @@ export default function LoginScreen() {
           ticket: tokenData.token,
         });
 
-        if (result.status === 'complete') {
+        if (result.status === 'complete' && result.createdSessionId) {
+          // Pre-sync reviewer profile for selected role so routing goes directly to corresponding dashboard
+          try {
+            const reviewerPayload = {
+              clerkId: 'user_3G59MhMkFRFWnIgHsS00l2Q3T4i',
+              name: role === 'NGO' ? 'App Reviewer (NGO)' : 'App Reviewer',
+              email: 'reviewer@pashuraksha.com',
+              phone: '9999999999',
+              role: role === 'NGO' ? 'NGO' : 'citizen',
+              ...(role === 'NGO' && {
+                location: {
+                  type: 'Point',
+                  coordinates: [77.2090, 28.6139]
+                },
+                ngoDetails: { address: 'Animal Rescue Center, New Delhi', isVerified: true }
+              })
+            };
+
+            await axios.post(`${API_URL}/users/sync`, reviewerPayload, { timeout: 15000 }).catch(() => {});
+          } catch (syncErr) {
+            // Non-blocking sync attempt
+          }
+
           await setActive({ session: result.createdSessionId });
         } else {
           Alert.alert("Sign In Failed", `Status: ${result.status}`);
@@ -90,7 +149,7 @@ export default function LoginScreen() {
         password,
       });
 
-      if (signInAttempt.status === 'complete') {
+      if (signInAttempt.status === 'complete' && signInAttempt.createdSessionId) {
         await setActive({ session: signInAttempt.createdSessionId });
       } else {
         console.warn("Sign in status not complete", signInAttempt.status);
@@ -103,7 +162,40 @@ export default function LoginScreen() {
     } finally {
       setIsLoggingIn(false);
     }
-  }, [isSignInLoaded, email, password, signIn, setActive]);
+  }, [isSignInLoaded, email, password, role, signIn, setActive]);
+
+  const onForgotPasswordPress = () => {
+    if (email.trim()) {
+      Alert.alert(
+        "Reset Password",
+        `A password reset link can be sent to ${email.trim()}. Would you like to proceed?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Send Reset Link",
+            onPress: async () => {
+              try {
+                if (signIn) {
+                  await signIn.create({
+                    strategy: "reset_password_email_code",
+                    identifier: email.trim(),
+                  });
+                  Alert.alert("Success", "Password reset instructions have been sent to your email.");
+                }
+              } catch (e: any) {
+                Alert.alert("Password Reset", e?.errors?.[0]?.longMessage || e?.message || "Please contact support@pashuraksha.com for assistance.");
+              }
+            }
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Forgot Password",
+        "Please enter your email address above to receive password reset instructions, or contact support@pashuraksha.com."
+      );
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -135,25 +227,37 @@ export default function LoginScreen() {
           <View style={styles.toggleWrapper}>
             <TouchableOpacity
               style={[styles.toggleBtn, role === 'Volunteer' && styles.activeToggle]}
-              onPress={() => setRole('Volunteer')}
+              onPress={() => handleRoleSelect('Volunteer')}
+              disabled={isLoggingIn || isGoogleLoading}
             >
               <Text style={[styles.toggleText, role === 'Volunteer' && styles.activeToggleText]}>Volunteer</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.toggleBtn, role === 'NGO' && styles.activeToggle]}
-              onPress={() => setRole('NGO')}
+              onPress={() => handleRoleSelect('NGO')}
+              disabled={isLoggingIn || isGoogleLoading}
             >
               <Text style={[styles.toggleText, role === 'NGO' && styles.activeToggleText]}>NGO</Text>
             </TouchableOpacity>
           </View>
 
           {/* Google Button */}
-          <TouchableOpacity style={styles.googleBtn} onPress={onGoogleLogin}>
-            <Image
-              source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }}
-              style={styles.googleIcon}
-            />
-            <Text style={styles.googleText}>Google</Text>
+          <TouchableOpacity
+            style={[styles.googleBtn, (isGoogleLoading || isLoggingIn) && { opacity: 0.7 }]}
+            onPress={onGoogleLogin}
+            disabled={isGoogleLoading || isLoggingIn}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#1A1C1E" />
+            ) : (
+              <>
+                <Image
+                  source={{ uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png' }}
+                  style={styles.googleIcon}
+                />
+                <Text style={styles.googleText}>Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <View style={styles.divider}>
@@ -176,6 +280,7 @@ export default function LoginScreen() {
                 autoCapitalize="none"
                 keyboardType="email-address"
                 autoComplete="email"
+                editable={!isLoggingIn && !isGoogleLoading}
               />
             </View>
           </View>
@@ -192,21 +297,29 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 autoCapitalize="none"
+                editable={!isLoggingIn && !isGoogleLoading}
               />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoggingIn || isGoogleLoading}
+              >
                 <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={20} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
-            <TouchableOpacity style={styles.forgotPass}>
+            <TouchableOpacity
+              style={styles.forgotPass}
+              onPress={onForgotPasswordPress}
+              disabled={isLoggingIn || isGoogleLoading}
+            >
               <Text style={styles.forgotText}>Forgot Password?</Text>
             </TouchableOpacity>
           </View>
 
           {/* Sign In Button */}
           <TouchableOpacity
-            style={[styles.signInBtn, isLoggingIn && { opacity: 0.7 }]}
+            style={[styles.signInBtn, (isLoggingIn || isGoogleLoading) && { opacity: 0.7 }]}
             onPress={onSignInPress}
-            disabled={isLoggingIn}
+            disabled={isLoggingIn || isGoogleLoading}
           >
             {isLoggingIn ? (
               <ActivityIndicator size="small" color="#000" />

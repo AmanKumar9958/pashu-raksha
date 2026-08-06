@@ -1,11 +1,21 @@
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect, useState } from 'react';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import axios from 'axios';
 import { useBackendUserProfile } from '../lib/useBackendUserProfile';
+import { API_URL } from '../constants';
+
+// Ensure OAuth deep linking works on native platforms
+WebBrowser.maybeCompleteAuthSession();
+
+const CLERK_PUBLISHABLE_KEY =
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+  'pk_test_Y2l2aWwtaWd1YW5hLTYyLmNsZXJrLmFjY291bnRzLmRldiQ';
 
 const tokenCache = {
   async getToken(key: string) {
@@ -30,6 +40,16 @@ function InitialLayout() {
   const segments = useSegments();
   const router = useRouter();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+  // Ping backend to wake up sleeping Render instance early
+  useEffect(() => {
+    try {
+      const pingUrl = API_URL.replace(/\/api\/?$/, '');
+      axios.get(pingUrl, { timeout: 5000 }).catch(() => {});
+    } catch (e) {
+      // Ignore ping errors
+    }
+  }, []);
 
   // Determine if we should wait for backend profile
   // Only wait if signed in AND profile is still loading
@@ -100,10 +120,9 @@ function InitialLayout() {
 }
 
 export default function RootLayout() {
-  const prefix = Linking.createURL('/');
   return (
     <ClerkProvider 
-      publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!} 
+      publishableKey={CLERK_PUBLISHABLE_KEY} 
       tokenCache={tokenCache}
     >
       <InitialLayout />

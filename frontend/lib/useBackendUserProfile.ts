@@ -81,7 +81,7 @@ export function useBackendUserProfile() {
       const token = await getToken();
       const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 10000,
+        timeout: 45000,
       });
 
       const data = response.data?.data as BackendUserProfile;

@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Activi
 import { useRouter } from 'expo-router';
 import axios from 'axios';
 import * as Location from 'expo-location';
+import * as SecureStore from 'expo-secure-store';
 import { useAuth, useUser } from '@clerk/clerk-expo';
 import { API_URL } from '../constants/index';
 import CustomModal from '@/components/CustomModal';
@@ -44,12 +45,25 @@ export default function DetailsScreen() {
     setModalVisible(true);
   }, []);
 
+  // Check saved role from login screen
+  useEffect(() => {
+    SecureStore.getItemAsync('user_selected_role').then((savedRole) => {
+      if (savedRole === 'NGO') {
+        setRole('NGO');
+      } else if (savedRole === 'Volunteer') {
+        setRole('citizen');
+      }
+    }).catch(() => {});
+  }, []);
+
   // Set display name from Clerk or use reviewer fallback
   useEffect(() => {
     if (!userLoaded) return;
     if (isReviewer) {
       setDisplayName('App Reviewer');
       setPhone('9999999999');
+      setAddress('Animal Rescue Center, New Delhi');
+      setNgoCoords({ latitude: 28.6139, longitude: 77.2090 });
     } else {
       setDisplayName(user?.fullName || '');
     }
@@ -69,7 +83,7 @@ export default function DetailsScreen() {
         const token = await getToken();
         const response = await axios.get(`${API_URL}/users/profile/${user.id}`, {
           headers: { Authorization: `Bearer ${token}` },
-          timeout: 15000,
+          timeout: 45000,
         });
 
         // Agar profile already exists aur phone number hai, toh redirect karo
@@ -102,7 +116,7 @@ export default function DetailsScreen() {
       const timer = setTimeout(() => handleSubmit(), 500);
       return () => clearTimeout(timer);
     }
-  }, [checkingProfile, isReviewer, phone, displayName]);
+  }, [checkingProfile, isReviewer, phone, displayName, role]);
 
   const requestNgoLocation = async () => {
     setGettingNgoLocation(true);
@@ -140,8 +154,11 @@ export default function DetailsScreen() {
       return;
     }
 
+    const finalAddress = address.trim() || (isReviewer ? 'Animal Rescue Center, New Delhi' : '');
+    const finalCoords = ngoCoords || (isReviewer ? { latitude: 28.6139, longitude: 77.2090 } : null);
+
     if (role === 'NGO') {
-      if (!address.trim() || !ngoCoords) {
+      if (!finalAddress || !finalCoords) {
         showModal({
           type: 'warning',
           title: 'NGO Details Missing',
@@ -160,18 +177,18 @@ export default function DetailsScreen() {
         email: user?.primaryEmailAddress?.emailAddress,
         phone,
         role,
-        ...(role === 'NGO' && {
+        ...(role === 'NGO' && finalCoords && {
           location: {
             type: 'Point',
-            coordinates: [ngoCoords?.longitude, ngoCoords?.latitude]
+            coordinates: [finalCoords.longitude, finalCoords.latitude]
           },
-          ngoDetails: { address: address.trim(), isVerified: false }
+          ngoDetails: { address: finalAddress, isVerified: isReviewer ? true : false }
         })
       };
 
       const response = await axios.post(`${API_URL}/users/sync`, payload, {
         headers: { Authorization: `Bearer ${token}` },
-        timeout: 15000,
+        timeout: 45000,
       });
 
       if (response.data.success) {
